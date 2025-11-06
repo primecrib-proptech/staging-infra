@@ -213,7 +213,7 @@ services:
   github-runner:
     image: myoung34/github-runner:latest
     environment:
-      REPO_URL: https://github.com/<your-username>/<your-repo>
+      REPO_URL: https://github.com/cyberstarsng/proptech-core-service.git
       RUNNER_NAME: ${STACK_NAME:-default}-vps-runner
       RUNNER_WORKDIR: /tmp/github-runner
       RUNNER_SCOPE: repo
