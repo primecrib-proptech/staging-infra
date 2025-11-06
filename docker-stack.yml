@@ -47,10 +47,10 @@ services:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     volumes:
-      - ./vault/config.hcl:/vault/config/config.hcl
-      - ./vault/init:/vault/init
-      - vault_logs:/vault/logs
-      - vault_data:/vault/file
+    - ./vault/config.hcl:/vault/config/config.hcl:ro
+    - ./vault/unseal.sh:/vault/unseal.sh:ro
+    - vault_logs:/vault/logs
+    - vault_data:/vault/file
     ports:
       - "8200:8200"
     cap_add:
@@ -162,6 +162,19 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
+          # Dashboard Router
+        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
+        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+
+        # Secure the dashboard with basic auth
+        - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/"
+
+        # Apply middleware to dashboard
+        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth"
+
+        # Point to internal dashboard service
+        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
 
   prometheus:
     image: prom/prometheus:latest
