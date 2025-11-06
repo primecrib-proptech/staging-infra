@@ -259,64 +259,64 @@ services:
       restart_policy:
         condition: on-failure
 
-  app:
-    image: ${REGISTRY:-localhost:5000}/proptech-core-service:${TAG:-latest}
-    environment:
-      SPRING_PROFILES_ACTIVE: staging
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/$${DB_NAME}
-      SPRING_DATASOURCE_USERNAME_FILE: /run/secrets/db_user
-      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN_FILE: /run/secrets/vault_root_token
-      JAVA_OPTS: "-Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-    networks:
-      - traefik-public
-      - backend
-    secrets:
-      - db_user
-      - db_password
-      - vault_root_token
-      - jwt_secret_key
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-        max_attempts: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-        failure_action: rollback
-        order: start-first
-      rollback_config:
-        parallelism: 1
-        delay: 5s
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '1'
-          memory: 1G
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.proptech-app.rule=Host(`${DOMAIN_NAME:-api.proptech.com}`)"
-        - "traefik.http.routers.proptech-app.entrypoints=websecure"
-        - "traefik.http.routers.proptech-app.tls=true"
-        - "traefik.http.routers.proptech-app.tls.certresolver=letsencrypt"
-        - "traefik.http.services.proptech-app.loadbalancer.server.port=8080"
-        - "traefik.http.services.proptech-app.loadbalancer.sticky.cookie=true"
-        - "traefik.http.services.proptech-app.loadbalancer.healthcheck.path=/actuator/health"
-        - "traefik.http.services.proptech-app.loadbalancer.healthcheck.interval=30s"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    depends_on:
-      - postgres
-      - vault
+  # app:
+  #   image: ${REGISTRY:-localhost:5000}/proptech-core-service:${TAG:-latest}
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: staging
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/$${DB_NAME}
+  #     SPRING_DATASOURCE_USERNAME_FILE: /run/secrets/db_user
+  #     SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+  #     VAULT_ADDR: http://vault:8200
+  #     VAULT_TOKEN_FILE: /run/secrets/vault_root_token
+  #     JAVA_OPTS: "-Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+  #   networks:
+  #     - traefik-public
+  #     - backend
+  #   secrets:
+  #     - db_user
+  #     - db_password
+  #     - vault_root_token
+  #     - jwt_secret_key
+  #   deploy:
+  #     replicas: 2
+  #     restart_policy:
+  #       condition: on-failure
+  #       delay: 10s
+  #       max_attempts: 3
+  #     update_config:
+  #       parallelism: 1
+  #       delay: 10s
+  #       failure_action: rollback
+  #       order: start-first
+  #     rollback_config:
+  #       parallelism: 1
+  #       delay: 5s
+  #     resources:
+  #       limits:
+  #         cpus: '2'
+  #         memory: 2G
+  #       reservations:
+  #         cpus: '1'
+  #         memory: 1G
+  #     labels:
+  #       - "traefik.enable=true"
+  #       - "traefik.http.routers.proptech-app.rule=Host(`${DOMAIN_NAME:-api.proptech.com}`)"
+  #       - "traefik.http.routers.proptech-app.entrypoints=websecure"
+  #       - "traefik.http.routers.proptech-app.tls=true"
+  #       - "traefik.http.routers.proptech-app.tls.certresolver=letsencrypt"
+  #       - "traefik.http.services.proptech-app.loadbalancer.server.port=8080"
+  #       - "traefik.http.services.proptech-app.loadbalancer.sticky.cookie=true"
+  #       - "traefik.http.services.proptech-app.loadbalancer.healthcheck.path=/actuator/health"
+  #       - "traefik.http.services.proptech-app.loadbalancer.healthcheck.interval=30s"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 120s
+  #   depends_on:
+  #     - postgres
+  #     - vault
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
