@@ -1,0 +1,440 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.3
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/db_name
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - backend
+    secrets:
+      - db_name
+      - db_user
+      - db_password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.labels.postgres == true
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vault:
+    image: hashicorp/vault:1.17
+    command: ["/bin/sh", "-c", "vault server -config=/vault/config/config.hcl & sleep 10 && /vault/unseal.sh && tail -f /dev/null"]
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - ./vault/config.hcl:/vault/config/config.hcl
+      - ./vault/init:/vault/init
+      - vault_logs:/vault/logs
+      - vault_data:/vault/file
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    secrets:
+      - db_password
+      - vault_unseal_key
+      - vault_root_token
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      placement:
+        constraints:
+          - node.labels.vault == true
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS_FILE: /run/secret/rabbit_password
+    secrets:
+        - rabbit_password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    secrets:
+      - minio_root_password
+    volumes:
+      - minio_data:/data
+      - minio_config:/root/.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - backend
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(`minio.cyberstarsng.com`)"
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.labels.minio == true
+
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/acme.json:/acme.json
+      - traefik_logs:/var/log/traefik
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - backend
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      - "prometheus.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.cyberstarsng.com`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+      - "prometheus.port=8200"
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_root_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+    secrets:
+      - grafana_root_password
+    networks:
+      - backend
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.cyberstarsng.com`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+    depends_on:
+      - prometheus
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 512M
+
+  github-runner:
+    image: myoung34/github-runner:latest
+    environment:
+      REPO_URL: https://github.com/<your-username>/<your-repo>
+      RUNNER_NAME: ${STACK_NAME:-default}-vps-runner
+      RUNNER_WORKDIR: /tmp/github-runner
+      RUNNER_SCOPE: repo
+      LABELS: docker,swarm,vps
+      EPHEMERAL: 1
+      DISABLE_AUTO_UPDATE: 1
+      ACCESS_TOKEN_FILE: /run/secrets/github_runner_token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/docker:/etc/docker:ro
+      - github-runner-data:/runner
+    secrets:
+      - github_runner_token
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - ci-network
+      - default
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "ps aux | grep -v grep | grep Runner.Listener" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup --interval 3600
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  app:
+    image: ${REGISTRY:-localhost:5000}/proptech-core-service:${TAG:-latest}
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/$${DB_NAME}
+      SPRING_DATASOURCE_USERNAME_FILE: /run/secrets/db_user
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN_FILE: /run/secrets/vault_root_token
+      JAVA_OPTS: "-Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - db_user
+      - db_password
+      - vault_root_token
+      - jwt_secret_key
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.proptech-app.rule=Host(`${DOMAIN_NAME:-api.proptech.com}`)"
+        - "traefik.http.routers.proptech-app.entrypoints=websecure"
+        - "traefik.http.routers.proptech-app.tls=true"
+        - "traefik.http.routers.proptech-app.tls.certresolver=letsencrypt"
+        - "traefik.http.services.proptech-app.loadbalancer.server.port=8080"
+        - "traefik.http.services.proptech-app.loadbalancer.sticky.cookie=true"
+        - "traefik.http.services.proptech-app.loadbalancer.healthcheck.path=/actuator/health"
+        - "traefik.http.services.proptech-app.loadbalancer.healthcheck.interval=30s"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    depends_on:
+      - postgres
+      - vault
+
+# ────────────────────────────────
+# LOCAL PERSISTENT VOLUMES
+# ────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/postgres-data
+
+  minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/minio-data
+
+  minio_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/minio-config
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/prometheus-data
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/grafana-data
+
+  github-runner-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/github-runner-data
+
+  traefik_letsencrypt:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/traefik-data
+
+  traefik_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/traefik-logs
+
+  traefik_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/traefik-data
+
+  vault_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/vault-data
+
+  vault_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/vault-logs
+
+  rabbitmq_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/rabbitmq-data
+
+networks:
+  backend:
+    driver: overlay
+    internal: true
+  traefik-public:
+    external: true
+  ci-network:
+    external: false
+    driver_opts:
+      encrypted: "true"
+
+secrets:
+  db_name:
+    external: true
+  db_user:
+    external: true
+  db_password:
+    external: true
+  vault_root_token:
+    external: true
+  vault_unseal_key:
+    external: true
+  jwt_secret_key:
+    external: true
+  rabbit_password:
+    external: true
+  minio_root_password:
+    external: true
+  github_runner_token:
+    external: true
+  grafana_root_password:
+    external: true
