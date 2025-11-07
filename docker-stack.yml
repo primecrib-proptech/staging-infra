@@ -108,8 +108,10 @@ services:
       - -ec
       - |
         DB_PASS=$(cat /run/secrets/db_password)
-        export VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
-        envsubst < /vault/config.hcl > /vault/config.generated.hcl
+        VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@postgres:5432/vaultdb?sslmode=disable"
+        export VAULT_CONNECTION_URL
+        apk add --no-cache gettext >/dev/null 2>&1
+        envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
         vault server -config=/vault/config/config.generated.hcl &
         sleep 10
         /vault/unseal.sh
