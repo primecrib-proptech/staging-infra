@@ -1,7 +1,14 @@
-api:
-  dashboard: false
-  insecure: false
+# Global Configuration
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
 
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: false  # Never expose insecurely in production
+
+# Entry Points
 entryPoints:
   web:
     address: ":80"
@@ -11,29 +18,77 @@ entryPoints:
           to: websecure
           scheme: https
           permanent: true
+
   websecure:
     address: ":443"
     http:
       tls:
         certResolver: letsencrypt
+        domains:
+          - main: cyberstarsng.com
+            sans:
+              - "*.cyberstarsng.com"
+      middlewares:
+        - securityHeaders@file
+        - rateLimit@file
 
+# Certificate Resolvers
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: cyberstarsng@gmail.com  # CHANGE THIS
-      storage: /acme.json
+      email: cyberstarsng@gmail.com  # Use devops/noreply email
+      storage: /opt/containers/traefik/acme.json
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      # Use DNS challenge for wildcard certs
+      dnsChallenge:
+        provider: cloudflare  # Or your DNS provider
+        delayBeforeCheck: 30s
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+      # Fallback to HTTP challenge
       httpChallenge:
         entryPoint: web
 
+# Providers
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
-    swarmMode: true
     exposedByDefault: false
-    network: traefik-public
+    network: web
+    swarmMode: true
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
 
+# Logging
 log:
-  level: INFO
+  level: INFO  # Use ERROR or WARN in production
+  format: json
+  filePath: /var/log/traefik/traefik.log
+  maxSize: 100
+  maxBackups: 3
+  maxAge: 7
+  compress: true
 
 accessLog:
-  filePath: "/var/log/traefik/access.log"
+  format: json
+  filePath: /var/log/traefik/access.log
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "400-599"
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+        X-Forwarded-For: keep
+
+# Metrics (Optional but recommended)
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
