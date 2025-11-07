@@ -5,8 +5,6 @@ http:
       redirectScheme:
         scheme: https
         permanent: true
-        exemptPaths:
-          - "/.well-known/acme-challenge"
     securityHeaders:
       headers:
         browserXssFilter: true

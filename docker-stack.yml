@@ -36,6 +36,7 @@ services:
 
         - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+        - "traefik.http.routers.my-app.middlewares=redirect-to-https@file"
         - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
 
         # Secure the dashboard with basic auth
