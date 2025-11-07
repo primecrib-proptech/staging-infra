@@ -11,9 +11,9 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /opt/containers/staging-infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - /opt/containers/staging-infra/traefik/acme.json:/acme.json
-      - /opt/containers/staging-infra/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/acme.json:/acme.json
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik_logs:/var/log/traefik
     secrets:
       - dashboard_users
