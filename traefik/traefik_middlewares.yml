@@ -21,16 +21,11 @@ http:
 
     rateLimit:
       rateLimit:
-        average: 100
+        average: 20
         period: 1s
-        burst: 200
+        burst: 50
 
     compression:
       compress:
         excludedContentTypes:
           - text/event-stream
-
-    basicAuth:
-      basicAuth:
-        usersFile: /etc/traefik/.htpasswd
-        realm: "Restricted Access"

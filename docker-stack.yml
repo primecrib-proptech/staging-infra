@@ -15,6 +15,7 @@ services:
       - ./traefik/acme.json:/acme.json
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik_logs:/var/log/traefik
+      - ./traefik/traefik_middlewares.yml:/etc/traefik/dynamic/traefik_middlewares.yml:ro
     secrets:
       - dashboard_users
     deploy:
@@ -139,8 +140,10 @@ networks:
     driver: overlay
     internal: true
   traefik-public:
+    driver: overlay
     external: true
   ci-network:
+    driver: overlay
     external: false
     driver_opts:
       encrypted: "true"
