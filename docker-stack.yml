@@ -123,6 +123,9 @@ services:
     networks:
       - traefik-public
       - backend
+    depends_on:
+      - postgres
+      - traefik
     deploy:
       replicas: 1
       restart_policy:
