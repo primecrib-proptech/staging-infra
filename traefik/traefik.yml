@@ -46,8 +46,8 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: traefik-public
-    swarmMode: true
-    swarmModeRefreshSeconds: 15
+#    swarmMode: true
+#    swarmModeRefreshSeconds: 15
     watch: true
     defaultRule: "Host(`{{ normalize .Name }}.cyberstarsng.com`)"
   file:
