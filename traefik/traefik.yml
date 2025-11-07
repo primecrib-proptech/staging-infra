@@ -21,23 +21,13 @@ entryPoints:
 
   websecure:
     address: ":443"
-    http:
-      tls:
-        certResolver: letsencrypt
-        domains:
-          - main: cyberstarsng.com
-            sans:
-              - "*.cyberstarsng.com"
-      middlewares:
-        - securityHeaders@file
-        - rateLimit@file
 
 # Certificate Resolvers
 certificatesResolvers:
   letsencrypt:
     acme:
       email: cyberstarsng@gmail.com  # Use devops/noreply email
-      storage: traefik/acme.json
+      storage: /acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       httpChallenge:
         entryPoint: web
