@@ -28,6 +28,9 @@ services:
       labels:
         - "traefik.enable=true"
         # Dashboard Router
+        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193/32"
+        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist"
+
         - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
         - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
@@ -51,84 +54,84 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /opt/postgres-data
-
-  minio_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/minio-data
-
-  minio_config:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/minio-config
-
-  prometheus_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/prometheus-data
-
-  grafana_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/grafana-data
-
-  github-runner-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/github-runner-data
-
-  traefik_letsencrypt:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/traefik-data
-
-  traefik_logs:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/traefik-logs
-
-  traefik_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/traefik-data
+      device: /opt/containers/storages/postgres-data
 
   vault_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/vault-data
+      device: /opt/containers/storages/vault-data
 
   vault_logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/vault-logs
+      device: /opt/containers/storages/vault-logs
+
+  minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/minio-data
+
+  minio_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/minio-config
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/prometheus-data
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/grafana-data
+
+  traefik_letsencrypt:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-letsencrypt-data
+
+  traefik_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-data
+
+  traefik_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-logs
+
+  github-runner-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/github-runner-data
 
   rabbitmq_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/rabbitmq-data
+      device: /opt/containers/storages/rabbitmq-data
 
 networks:
   backend:
