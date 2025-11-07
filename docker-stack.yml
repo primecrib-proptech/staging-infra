@@ -104,7 +104,7 @@ services:
     image: hashicorp/vault:1.17
 #    command: ["/bin/sh", "-c", "vault server -config=/vault/config/config.hcl & sleep 10 && /vault/unseal.sh && tail -f /dev/null"]
     command:
-      - /bin/bash
+      - /bin/sh
       - -ec
       - |
         DB_PASS=$(cat /run/secrets/db_password)
