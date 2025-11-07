@@ -83,29 +83,6 @@ GRANT CONNECT ON DATABASE vaultdb TO vault_app;
 GRANT USAGE, CREATE ON SCHEMA core TO vault_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO vault_app;
 
-CREATE TABLE vault_kv_store
-(
-    parent_path TEXT COLLATE "C" NOT NULL,
-    path        TEXT COLLATE "C",
-    key         TEXT COLLATE "C",
-    value       BYTEA,
-    CONSTRAINT vault_kv_store_pkey PRIMARY KEY (path, key)
-);
-
-
-CREATE INDEX parent_path_idx ON vault_kv_store (parent_path);
-
-
-CREATE TABLE vault_ha_locks
-(
-    ha_key      TEXT COLLATE "C"         NOT NULL,
-    ha_identity TEXT COLLATE "C"         NOT NULL,
-    ha_value    TEXT COLLATE "C",
-    valid_until TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT vault_ha_locks_pkey PRIMARY KEY (ha_key)
-);
-
-
 -- ============================================
 \connect quartzdb
 
@@ -135,3 +112,31 @@ ALTER ROLE proptech_app SET search_path = core, public;
 
 -- Optional: enforce password encryption
 SHOW password_encryption;
+
+\connect vaultdb
+BEGIN;
+
+
+CREATE TABLE vault_kv_store
+(
+    parent_path TEXT COLLATE "C" NOT NULL,
+    path        TEXT COLLATE "C",
+    key         TEXT COLLATE "C",
+    value       BYTEA,
+    CONSTRAINT vault_kv_store_pkey PRIMARY KEY (path, key)
+);
+
+
+CREATE INDEX parent_path_idx ON vault_kv_store (parent_path);
+
+
+CREATE TABLE vault_ha_locks
+(
+    ha_key      TEXT COLLATE "C"         NOT NULL,
+    ha_identity TEXT COLLATE "C"         NOT NULL,
+    ha_value    TEXT COLLATE "C",
+    valid_until TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT vault_ha_locks_pkey PRIMARY KEY (ha_key)
+);
+
+COMMIT;
