@@ -56,15 +56,6 @@ services:
         - "traefik.http.routers.traefik-dashboard.service=api@internal"
         - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,securityHeaders@file"
 
-        # Dashboard Router
-#        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193/200"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist"
-
-        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
-        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.my-app.middlewares=redirect-to-https@file"
-        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
-
         # Secure the dashboard with basic auth
         - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
 
