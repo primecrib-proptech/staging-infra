@@ -14,10 +14,10 @@ if command -v apk >/dev/null 2>&1; then
   apk add --no-cache gettext >/dev/null 2>&1 || true
 fi
 
-envsubst < /vault/config.hcl > /vault/config.generated.hcl
+envsubst < config.hcl > /vault/config.generated.hcl
 
 # Optional: copy unseal script if read-only
-cp /vault/unseal.sh /tmp/unseal.sh
+cp unseal.sh /tmp/unseal.sh
 chmod +x /tmp/unseal.sh
 
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID; exit 0" TERM INT
