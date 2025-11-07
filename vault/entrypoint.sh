@@ -14,7 +14,7 @@ if command -v apk >/dev/null 2>&1; then
   apk add --no-cache gettext >/dev/null 2>&1 || true
 fi
 
-envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
+envsubst < /vault/config.hcl > /vault/config.generated.hcl
 
 # Optional: copy unseal script if read-only
 cp /vault/unseal.sh /tmp/unseal.sh
@@ -35,7 +35,7 @@ until pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; do
 done
 
 log "Launching Vault..."
-vault server -config=/vault/config/config.generated.hcl &
+vault server -config=/vault/config.generated.hcl &
 VAULT_PID=$!
 
 log "Waiting for Vault to be ready..."
