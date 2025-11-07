@@ -3,8 +3,6 @@
 -- For: PropTech Application, Audit, Vault, Quartz Jobs
 -- ============================================
 
-BEGIN;
-
 -- ============================================
 -- 1️⃣ Create Databases
 -- ============================================
@@ -114,5 +112,3 @@ ALTER ROLE proptech_app SET search_path = core, public;
 
 -- Optional: enforce password encryption
 SHOW password_encryption;
-
-COMMIT;
