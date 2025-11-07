@@ -45,7 +45,7 @@ providers:
 
 # Logging
 log:
-  level: INFO  # Use ERROR or WARN in production
+  level: DEBUG  # Use ERROR or WARN in production
   format: json
   filePath: /var/log/traefik/traefik.log
   maxSize: 100
