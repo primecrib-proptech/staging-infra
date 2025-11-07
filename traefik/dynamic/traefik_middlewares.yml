@@ -14,9 +14,9 @@ http:
       headers:
         browserXssFilter: true
         contentTypeNosniff: true
-        forceSTSHeader: false # to be true after certs are issued
+        forceSTSHeader: true # to be true after certs are issued
         frameDeny: true
-        sslRedirect: false # to be true after certs are issued
+        sslRedirect: true # to be true after certs are issued
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 31536000
