@@ -14,7 +14,7 @@ if command -v apk >/dev/null 2>&1; then
   apk add --no-cache gettext >/dev/null 2>&1 || true
 fi
 
-envsubst < /vault/config.hcl > /vault/config/config.generated.hcl
+envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
 
 # Optional: copy unseal script if read-only
 cp unseal.sh /tmp/unseal.sh
