@@ -1,44 +1,51 @@
 #!/bin/sh
 set -e
 
-echo "[Vault Entrypoint] Starting setup..."
+log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
-# Load DB password from secret
+log "Starting Vault setup..."
+
 DB_PASS=$(cat /run/secrets/db_password)
-VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@45.130.104.193:5432/vaultdb?sslmode=disable"
+VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@postgres:5432/vaultdb?sslmode=disable"
 export VAULT_CONNECTION_URL
+log "Using Vault DB connection: $VAULT_CONNECTION_URL"
 
-echo "[Vault Entrypoint] Using Vault DB connection: $VAULT_CONNECTION_URL"
-
-# Install gettext for envsubst if not available
 if command -v apk >/dev/null 2>&1; then
   apk add --no-cache gettext >/dev/null 2>&1 || true
 fi
 
-# Substitute variables into config
 envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
 
-# Make unseal script executable
-chmod +x /vault/unseal.sh
+# Optional: copy unseal script if read-only
+cp /vault/unseal.sh /tmp/unseal.sh
+chmod +x /tmp/unseal.sh
 
-# Graceful shutdown handler
-trap "echo '[Vault Entrypoint] Caught SIGTERM, shutting down Vault...'; pkill vault; exit 0" TERM INT
+trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID; exit 0" TERM INT
 
-echo "[Vault Entrypoint] Launching Vault..."
+log "Waiting for Postgres to be ready..."
+MAX_WAIT=60
+WAITED=0
+until pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; do
+    sleep 2
+    WAITED=$((WAITED + 2))
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "Postgres not ready after $MAX_WAIT seconds, exiting."
+        exit 1
+    fi
+done
+
+log "Launching Vault..."
 vault server -config=/vault/config/config.generated.hcl &
-
 VAULT_PID=$!
 
-# Wait for Vault to become ready
-echo "[Vault Entrypoint] Waiting for Vault to be ready..."
-until curl -s http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; do
+log "Waiting for Vault to be ready..."
+until curl -s http://localhost:8200/v1/sys/health >/dev/null 2>&1; do
     sleep 1
 done
 
-echo "[Vault Entrypoint] Running unseal script..."
-/vault/unseal.sh
+log "Running unseal script..."
+/tmp/unseal.sh
 
-echo "[Vault Entrypoint] Vault ready and unsealed. PID=$VAULT_PID"
+log "Vault ready and unsealed. PID=$VAULT_PID"
 
-# Keep container alive
 wait $VAULT_PID
