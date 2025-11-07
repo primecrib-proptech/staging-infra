@@ -1,45 +1,44 @@
 #!/bin/sh
 set -e
 
-log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
+echo "[Vault Entrypoint] Starting setup..."
 
-log "Starting Vault setup..."
-
+# Load DB password from secret
 DB_PASS=$(cat /run/secrets/db_password)
 VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@45.130.104.193:5432/vaultdb?sslmode=disable"
 export VAULT_CONNECTION_URL
-log "Using Vault DB connection: $VAULT_CONNECTION_URL"
 
+echo "[Vault Entrypoint] Using Vault DB connection: $VAULT_CONNECTION_URL"
+
+# Install gettext for envsubst if not available
 if command -v apk >/dev/null 2>&1; then
   apk add --no-cache gettext >/dev/null 2>&1 || true
 fi
 
+# Substitute variables into config
 envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
 
-# Optional: copy unseal script if read-only
-cp /vault/unseal.sh /tmp/unseal.sh
-chmod +x /tmp/unseal.sh
+# Make unseal script executable
+chmod +x /vault/unseal.sh
 
-trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID; exit 0" TERM INT
+# Graceful shutdown handler
+trap "echo '[Vault Entrypoint] Caught SIGTERM, shutting down Vault...'; pkill vault; exit 0" TERM INT
 
-log "Waiting for Postgres to be ready..."
-until pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; do
-    log "Postgres not ready, retrying..."
-    sleep 2
-done
-
-log "Launching Vault..."
+echo "[Vault Entrypoint] Launching Vault..."
 vault server -config=/vault/config/config.generated.hcl &
+
 VAULT_PID=$!
 
-log "Waiting for Vault to be ready..."
-until curl -s http://localhost:8200/v1/sys/health >/dev/null 2>&1; do
+# Wait for Vault to become ready
+echo "[Vault Entrypoint] Waiting for Vault to be ready..."
+until curl -s http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; do
     sleep 1
 done
 
-log "Running unseal script..."
-/tmp/unseal.sh
+echo "[Vault Entrypoint] Running unseal script..."
+/vault/unseal.sh
 
-log "Vault ready and unsealed. PID=$VAULT_PID"
+echo "[Vault Entrypoint] Vault ready and unsealed. PID=$VAULT_PID"
 
+# Keep container alive
 wait $VAULT_PID
