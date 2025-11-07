@@ -15,7 +15,7 @@ services:
       - ./traefik/acme.json:/acme.json
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik_logs:/var/log/traefik
-      - ./traefik/traefik_middlewares.yml:/etc/traefik/dynamic/traefik_middlewares.yml:ro
+      - /opt/containers/staging-infra/traefik/dynamic:/etc/traefik/dynamic:ro
     secrets:
       - dashboard_users
     deploy:
