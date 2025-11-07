@@ -1,6 +1,12 @@
 # Security Headers Middleware
 http:
   middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+        exemptPaths:
+          - "/.well-known/acme-challenge"
     securityHeaders:
       headers:
         browserXssFilter: true
