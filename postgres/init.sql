@@ -104,7 +104,6 @@ CREATE TABLE vault_ha_locks
     valid_until TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT vault_ha_locks_pkey PRIMARY KEY (ha_key)
 );
-GRANT ALL PRIVILEGES ON DATABASE vault TO postgres;
 
 
 -- ============================================
