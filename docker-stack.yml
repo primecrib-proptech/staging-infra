@@ -31,8 +31,8 @@ services:
       labels:
         - "traefik.enable=true"
         # Dashboard Router
-        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193/32"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist"
+#        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193/32"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist"
 
         - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
