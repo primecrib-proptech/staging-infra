@@ -1,4 +1,4 @@
-# Global Configuration
+# traefik.yml
 global:
   checkNewVersion: true
   sendAnonymousUsage: false
@@ -6,26 +6,25 @@ global:
 # API and Dashboard
 api:
   dashboard: true
-  insecure: false  # Never expose insecurely in production
+  insecure: false  # Only accessible over HTTPS
 
 # Entry Points
 entryPoints:
   web:
     address: ":80"
-#    http:
-#      redirections:
-#        entryPoint:
-#          to: websecure
-#          scheme: https
-#          permanent: true
+    http:
+      # Redirect HTTP → HTTPS only after certs are issued
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
 
   websecure:
     address: ":443"
     http:
       tls:
-        certResolver: letsencrypt
-        # Disable strict SNI during initial certificate acquisition
-        options: default
+        options: default  # Use TLS options from dynamic config
 
 # Enable ping for health checks
 ping:
@@ -35,8 +34,8 @@ ping:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: cyberstarsng@gmail.com  # Use devops/noreply email
-      storage: acme.json
+      email: cyberstarsng@gmail.com
+      storage: /acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       keyType: RSA4096
       httpChallenge:
@@ -48,17 +47,16 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: traefik-public
-#    swarmMode: true
-#    swarmModeRefreshSeconds: 15
     watch: true
     defaultRule: "Host(`{{ normalize .Name }}.cyberstarsng.com`)"
+
   file:
     directory: /etc/traefik/dynamic
     watch: true
 
 # Logging
 log:
-  level: DEBUG  # Use ERROR or WARN in production
+  level: INFO  # Change to DEBUG only for troubleshooting
   format: json
   filePath: /var/log/traefik/traefik.log
   maxSize: 100
@@ -74,8 +72,6 @@ accessLog:
   filters:
     statusCodes:
       - "400-599"
-    retryAttempts: true
-    minDuration: "10ms"
   fields:
     defaultMode: keep
     headers:
@@ -96,10 +92,3 @@ metrics:
       - 0.3
       - 1.2
       - 5.0
-
-# Metrics (Optional but recommended)
-#metrics:
-#  prometheus:
-#    addEntryPointsLabels: true
-#    addServicesLabels: true
-#    entryPoint: metrics

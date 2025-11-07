@@ -1,62 +1,64 @@
-# Security Headers Middleware
+# traefik_middlewares.yml
 http:
   middlewares:
+
+    # Redirect HTTP → HTTPS
     redirect-to-https:
       redirectScheme:
         scheme: https
         permanent: true
         port: "443"
+
+    # Security headers
     securityHeaders:
       headers:
         browserXssFilter: true
         contentTypeNosniff: true
-        forceSTSHeader: false # Disable until we have certs
+        forceSTSHeader: true
         frameDeny: true
-        sslRedirect: false # Disable until we have certs
+        sslRedirect: true
         stsIncludeSubdomains: true
-        stsPreload: false
-        stsSeconds: 0
+        stsPreload: true
+        stsSeconds: 31536000
         customFrameOptionsValue: "SAMEORIGIN"
         customResponseHeaders:
           X-Powered-By: ""
           Server: ""
-#        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
+    # Rate Limiting
     rateLimit:
       rateLimit:
         average: 20
         period: 1s
         burst: 50
 
+    # Compression
     compression:
       compress:
         excludedContentTypes:
           - text/event-stream
-          - "application/grpc"
+          - application/grpc
         minResponseBodyBytes: 1024
 
-    # IP Whitelist Middleware (example - configure as needed)
+    # IP Whitelist (for dashboard)
     ipwhitelist:
       ipWhiteList:
         sourceRange:
           - "127.0.0.1/32"
-          - "10.0.0.0/8"
-          - "172.16.0.0/12"
-          - "192.168.0.0/16"
-          # Add your trusted IPs here
-          - "45.130.104.193"
+          - "45.130.104.193/32"  # Your trusted IP
         ipStrategy:
           depth: 1
 
-    # Retry Middleware
+    # Retry
     retry:
       retry:
         attempts: 3
         initialInterval: "100ms"
 
-    # Circuit Breaker Middleware
+    # Circuit Breaker
     circuitBreaker:
       circuitBreaker:
         expression: "NetworkErrorRatio() > 0.5 || ResponseCodeRatio(500, 600, 0, 600) > 0.3"
@@ -64,7 +66,7 @@ http:
         fallbackDuration: "30s"
         recoveryDuration: "10s"
 
-    # Buffering Middleware
+    # Buffering
     buffering:
       buffering:
         maxRequestBodyBytes: 10485760  # 10MB
@@ -73,7 +75,7 @@ http:
         memResponseBodyBytes: 2097152  # 2MB
         retryExpression: "IsNetworkError() && Attempts() < 3"
 
-    # InFlightReq Middleware (connection limiting)
+    # In-flight Requests
     inflightreq:
       inFlightReq:
         amount: 100
@@ -81,7 +83,6 @@ http:
           ipStrategy:
             depth: 1
 
-# TLS Options
 tls:
   options:
     default:
@@ -96,8 +97,8 @@ tls:
       curvePreferences:
         - CurveP521
         - CurveP384
-      sniStrict: false # CRITICAL: Disable strict SNI
+      sniStrict: false
 
     modern:
       minVersion: VersionTLS13
-      sniStrict: false # CRITICAL: Disable strict SNI
+      sniStrict: false
