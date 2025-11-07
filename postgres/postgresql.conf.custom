@@ -5,7 +5,7 @@
 
 # --- Memory Settings ---
 shared_buffers = 2GB                  # ~25% of total RAM
-effective_cache_size = 6GB            # ~75% of total RAM
+effective_cache_size = 3GB            # ~75% of total RAM
 work_mem = 32MB                       # per connection sort/join memory
 maintenance_work_mem = 256MB          # for VACUUM, CREATE INDEX
 autovacuum_work_mem = 256MB

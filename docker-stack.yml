@@ -60,6 +60,44 @@ services:
         - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
         - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
 
+  postgres:
+    image: postgis/postgis:16-3.3
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/db_name
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - backend
+    secrets:
+      - db_name
+      - db_user
+      - db_password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.labels.postgres == true
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
