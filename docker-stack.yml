@@ -85,7 +85,7 @@ services:
         max_attempts: 3
       placement:
         constraints:
-          - node.labels.postgres == true
+          - node.role == manager
       resources:
         limits:
           cpus: '2'
