@@ -104,14 +104,16 @@ services:
     image: hashicorp/vault:1.17
 #    command: ["/bin/sh", "-c", "vault server -config=/vault/config/config.hcl & sleep 10 && /vault/unseal.sh && tail -f /dev/null"]
     command:
-      - /bin/sh
-      - -c
+      - /bin/bash
+      - -ec
       - |
-        export DB_PASS=$(cat /run/secrets/db_password)
-        export VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@postgres:5432/vaultdb?sslmode=disable"
-        envsubst < /vault/config.hcl > /vault/config.hcl
-        vault server -config=/vault/config/config.hcl &
-        sleep 10 && /vault/unseal.sh && tail -f /dev/null
+        DB_PASS=$(cat /run/secrets/db_password)
+        export VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+        envsubst < /vault/config.hcl > /vault/config.generated.hcl
+        vault server -config=/vault/config/config.generated.hcl &
+        sleep 10
+        /vault/unseal.sh
+        tail -f /dev/null
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
