@@ -17,6 +17,8 @@ services:
       - traefik_logs:/var/log/traefik
     secrets:
       - dashboard_users
+    networks:
+      - traefik-public
     deploy:
       placement:
         constraints:
@@ -38,9 +40,6 @@ services:
 
         # Secure the dashboard with basic auth
         - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
-
-        # Apply middleware to dashboard
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth"
 
         # Point to internal dashboard service
         - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
