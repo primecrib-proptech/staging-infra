@@ -2,7 +2,7 @@ ui = true
 disable_mlock = true
 
 storage "postgresql" {
-  connection_url = "postgres://vaultuser:${VAULT_POSTGRES_PASSWORD}@postgres:5432/vaultdb?sslmode=disable"
+  connection_url = "${VAULT_CONNECTION_URL}"
 }
 
 listener "tcp" {

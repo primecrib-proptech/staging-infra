@@ -106,6 +106,7 @@ services:
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      VAULT_CONNECTION_URL_FILE: /run/secrets/vault_connection_url
     volumes:
       - ./vault/config.hcl:/vault/config/config.hcl:ro
       - ./vault/unseal.sh:/vault/unseal.sh:ro
@@ -117,6 +118,7 @@ services:
       - db_password
       - vault_unseal_key
       - vault_root_token
+      - vault_connection_url
     networks:
       - traefik-public
       - backend
@@ -272,6 +274,8 @@ secrets:
   vault_root_token:
     external: true
   vault_unseal_key:
+    external: true
+  vault_connection_url:
     external: true
   jwt_secret_key:
     external: true
