@@ -12,18 +12,20 @@ api:
 entryPoints:
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
+#    http:
+#      redirections:
+#        entryPoint:
+#          to: websecure
+#          scheme: https
+#          permanent: true
 
   websecure:
     address: ":443"
     http:
       tls:
         certResolver: letsencrypt
+        # Disable strict SNI during initial certificate acquisition
+        options: default
 
 # Enable ping for health checks
 ping:
@@ -34,7 +36,7 @@ certificatesResolvers:
   letsencrypt:
     acme:
       email: cyberstarsng@gmail.com  # Use devops/noreply email
-      storage: /acme.json
+      storage: acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       keyType: RSA4096
       httpChallenge:
@@ -83,6 +85,17 @@ accessLog:
         X-Forwarded-For: keep
         X-Real-Ip: keep
         X-Forwarded-Proto: keep
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
 
 # Metrics (Optional but recommended)
 #metrics:

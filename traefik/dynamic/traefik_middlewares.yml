@@ -10,17 +10,17 @@ http:
       headers:
         browserXssFilter: true
         contentTypeNosniff: true
-        forceSTSHeader: true
+        forceSTSHeader: false # Disable until we have certs
         frameDeny: true
-        sslRedirect: true
+        sslRedirect: false # Disable until we have certs
         stsIncludeSubdomains: true
-        stsPreload: true
-        stsSeconds: 31536000
+        stsPreload: false
+        stsSeconds: 0
         customFrameOptionsValue: "SAMEORIGIN"
         customResponseHeaders:
           X-Powered-By: ""
           Server: ""
-        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+#        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
@@ -96,8 +96,8 @@ tls:
       curvePreferences:
         - CurveP521
         - CurveP384
-      sniStrict: true
+      sniStrict: false # CRITICAL: Disable strict SNI
 
     modern:
       minVersion: VersionTLS13
-      sniStrict: true
+      sniStrict: false # CRITICAL: Disable strict SNI
