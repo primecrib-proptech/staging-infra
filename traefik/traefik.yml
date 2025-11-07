@@ -39,14 +39,6 @@ certificatesResolvers:
       email: cyberstarsng@gmail.com  # Use devops/noreply email
       storage: traefik/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
-      # Use DNS challenge for wildcard certs
-      dnsChallenge:
-        provider: cloudflare  # Or your DNS provider
-        delayBeforeCheck: 30s
-        resolvers:
-          - "1.1.1.1:53"
-          - "8.8.8.8:53"
-      # Fallback to HTTP challenge
       httpChallenge:
         entryPoint: web
 
