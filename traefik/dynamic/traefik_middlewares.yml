@@ -5,6 +5,7 @@ http:
       redirectScheme:
         scheme: https
         permanent: true
+        port: "443"
     securityHeaders:
       headers:
         browserXssFilter: true
@@ -33,3 +34,70 @@ http:
       compress:
         excludedContentTypes:
           - text/event-stream
+          - "application/grpc"
+        minResponseBodyBytes: 1024
+
+    # IP Whitelist Middleware (example - configure as needed)
+    ipwhitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+          # Add your trusted IPs here
+          # - "45.130.104.193/32"
+        ipStrategy:
+          depth: 1
+
+    # Retry Middleware
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"
+
+    # Circuit Breaker Middleware
+    circuitBreaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.5 || ResponseCodeRatio(500, 600, 0, 600) > 0.3"
+        checkPeriod: "10s"
+        fallbackDuration: "30s"
+        recoveryDuration: "10s"
+
+    # Buffering Middleware
+    buffering:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10MB
+        memRequestBodyBytes: 2097152   # 2MB
+        maxResponseBodyBytes: 10485760 # 10MB
+        memResponseBodyBytes: 2097152  # 2MB
+        retryExpression: "IsNetworkError() && Attempts() < 3"
+
+    # InFlightReq Middleware (connection limiting)
+    inflightreq:
+      inFlightReq:
+        amount: 100
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+# TLS Options
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      sniStrict: true
+
+    modern:
+      minVersion: VersionTLS13
+      sniStrict: true
