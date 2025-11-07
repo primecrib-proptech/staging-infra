@@ -165,3 +165,5 @@ secrets:
     external: true
   grafana_root_password:
     external: true
+  dashboard_users:
+    external: true
