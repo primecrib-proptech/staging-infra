@@ -46,7 +46,7 @@ http:
           - "172.16.0.0/12"
           - "192.168.0.0/16"
           # Add your trusted IPs here
-          # - "45.130.104.193/32"
+          - "45.130.104.193"
         ipStrategy:
           depth: 1
 
