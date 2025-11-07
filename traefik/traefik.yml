@@ -47,8 +47,7 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: web
-    swarmMode: true
+    network: traefik-public
     watch: true
   file:
     directory: /etc/traefik/dynamic
