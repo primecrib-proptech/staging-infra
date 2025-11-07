@@ -61,8 +61,8 @@ accessLog:
         X-Forwarded-For: keep
 
 # Metrics (Optional but recommended)
-metrics:
-  prometheus:
-    addEntryPointsLabels: true
-    addServicesLabels: true
-    entryPoint: metrics
+#metrics:
+#  prometheus:
+#    addEntryPointsLabels: true
+#    addServicesLabels: true
+#    entryPoint: metrics
