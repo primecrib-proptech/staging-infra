@@ -109,7 +109,7 @@ services:
       VAULT_CONNECTION_URL_FILE: /run/secrets/vault_connection_url
     volumes:
       - ./vault/config.hcl:/vault/config/config.hcl:ro
-      - ./vault/unseal.sh:/vault/unseal.sh:ro
+      - ./vault/unseal.sh:/vault/unseal.sh:rw
       - ./vault/entrypoint.sh:/vault/entrypoint.sh:ro
       - vault_logs:/vault/logs
       - vault_data:/vault/file
