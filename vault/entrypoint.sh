@@ -5,7 +5,7 @@ echo "[Vault Entrypoint] Starting setup..."
 
 # Load DB password from secret
 DB_PASS=$(cat /run/secrets/db_password)
-VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@postgres:5432/vaultdb?sslmode=disable"
+VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
 export VAULT_CONNECTION_URL
 
 echo "[Vault Entrypoint] Using Vault DB connection: $VAULT_CONNECTION_URL"
