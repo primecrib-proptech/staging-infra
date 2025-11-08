@@ -4,7 +4,17 @@ set -e
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
 log "[INIT] Installing PostgreSQL client tools..."
-apt-get update -qq && apt-get install -y -qq postgresql-client curl && rm -rf /var/lib/apt/lists/*
+if command -v apk >/dev/null 2>&1; then
+  log "[INIT] Installing PostgreSQL client and curl (Alpine)..."
+  apk add --no-cache postgresql-client curl
+elif command -v apt-get >/dev/null 2>&1; then
+  log "[INIT] Installing PostgreSQL client and curl (Debian/Ubuntu)..."
+  apt-get update -qq && apt-get install -y -qq postgresql-client curl && rm -rf /var/lib/apt/lists/*
+else
+  log "ERROR: Unknown base image (no apk or apt-get found)"
+  exit 1
+fi
+
 
 
 TEMPLATE=/vault/config/config.hcl
