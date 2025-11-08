@@ -148,54 +148,54 @@ services:
 #      - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
 #
 
-rabbitmq:
-  image: rabbitmq:3.12-management
-  container_name: rabbitmq
-  ports:
-    - "5672:5672"      # AMQP
-    - "15672:15672"    # Management UI
-  environment:
-    RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
-  secrets:
-    - rabbit_password
-    - traefik_basicauth
-  volumes:
-    - rabbitmq_data:/var/lib/rabbitmq
-    - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-  command: >
-    sh -c "export RABBITMQ_DEFAULT_USER=admin &&
-           export RABBITMQ_DEFAULT_PASS=$(cat /run/secrets/rabbit_password) &&
-           exec rabbitmq-server"
-  networks:
-    - backend
-  healthcheck:
-    test: ["CMD", "rabbitmq-diagnostics", "ping"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
-  deploy:
-    restart_policy:
-      condition: on-failure
-    placement:
-      constraints: [node.role == manager]
-  labels:
-    - "traefik.enable=true"
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    environment:
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
+    secrets:
+      - rabbit_password
+      - traefik_basicauth
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    command: >
+      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
+             export RABBITMQ_DEFAULT_PASS=$(cat /run/secrets/rabbit_password) &&
+             exec rabbitmq-server"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints: [node.role == manager]
+    labels:
+      - "traefik.enable=true"
 
-    # HTTPS route
-    - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
-    - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
-    - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
+      # HTTPS route
+      - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
+      - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
+      - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
 
-    # HTTP redirect to HTTPS
-    - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
-    - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
-    - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
+      # HTTP redirect to HTTPS
+      - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
+      - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
+      - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
 
-    # RabbitMQ UI backend service
-    - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
+      # RabbitMQ UI backend service
+      - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
 
-    # Security + performance middlewares
-    - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
+      # Security + performance middlewares
+      - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
 
 
 #  vault:
