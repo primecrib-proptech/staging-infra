@@ -6,7 +6,7 @@ http:
       rule: Host(`traefik.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: api@internal
+      service: traefik-dashboard-service
       tls:
         certResolver: letsencrypt
 
@@ -14,7 +14,7 @@ http:
       rule: Host(`vault.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: api@internal
+      service: vault-service
       tls:
         certResolver: letsencrypt
 
@@ -22,7 +22,7 @@ http:
       rule: Host(`rabbit.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: api@internal
+      service: rabbit-service
       tls:
         certResolver: letsencrypt
 
