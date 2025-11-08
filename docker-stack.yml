@@ -202,6 +202,7 @@ services:
       GITHUB_OWNER: cyberstarsng
       GITHUB_REPO: proptech-core-service
       GITHUB_PAT_FILE: /run/secrets/github_runner_token
+      RUNNER_TOKEN_FILE: /tmp/runner_token
     secrets:
       - github_runner_token
     volumes:
@@ -213,8 +214,10 @@ services:
           PAT=`cat /run/secrets/github_runner_token`;
           URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
           REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
-          echo "Starting GitHub Runner with token...";
-          /entrypoint.sh --token "${REG_TOKEN}";
+          echo "Writing token to file...";
+          echo "${REG_TOKEN}" > /tmp/runner_token;
+          echo "Starting GitHub Runner...";
+          /entrypoint.sh;
         '
     deploy:
       mode: replicated
