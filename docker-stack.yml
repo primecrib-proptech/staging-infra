@@ -48,15 +48,33 @@ services:
         failure_action: rollback
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
-        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
 
-        # Additional labels for security and authentication
-        - "traefik.http.routers.traefik-dashboard.tls=true"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist,securityHeaders@file"
-        - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
-        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
+        # Route rule for RabbitMQ Management UI
+        - "traefik.http.routers.traefik-ui.rule=Host(`traefik.cyberstarsng.com`)"
+        - "traefik.http.routers.traefik-ui.entrypoints=websecure"
+        - "traefik.http.routers.traefik-ui.tls.certresolver=letsencrypt"
+
+        # Optional redirect from HTTP to HTTPS
+        - "traefik.http.routers.traefik-ui-http.rule=Host(`traefik.cyberstarsng.com`)"
+        - "traefik.http.routers.traefik-ui-http.entrypoints=web"
+        - "traefik.http.routers.traefik-ui-http.middlewares=redirect-to-https@file"
+
+        # RabbitMQ UI service port mapping
+        - "traefik.http.services.traefik-ui.loadbalancer.server.port=8080"
+
+        # Security and compression middlewares
+        - "traefik.http.routers.traefik-ui.middlewares=traefik-auth@file,securityHeaders@file,compression@file"
+#      labels:
+#        - "traefik.enable=true"
+#        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
+#        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+#        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+#
+#        # Additional labels for security and authentication
+#        - "traefik.http.routers.traefik-dashboard.tls=true"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist,securityHeaders@file"
+#        - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
+#        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
 
   postgres:
     image: postgis/postgis:16-3.5
