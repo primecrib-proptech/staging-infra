@@ -161,9 +161,30 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
-#      - "traefik.http.routers.minio-ui.middlewares=minio-auth@file,securityHeaders@file"
 
-
+  redis:
+    image: redis:8.2-alpine
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
+    secrets:
+      - redis_root_password
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a $(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
 
 #  vault:
 #    image: hashicorp/vault:1.17
@@ -358,4 +379,6 @@ secrets:
   dashboard_users:
     external: true
   traefik_basicauth:
+    external: true
+  redis_root_password:
     external: true
