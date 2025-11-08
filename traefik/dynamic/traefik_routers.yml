@@ -10,13 +10,13 @@ http:
       tls:
         certResolver: letsencrypt
 
-    vault-dashboard:
-      rule: Host(`vault.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: vault-service
-      tls:
-        certResolver: letsencrypt
+#    vault-dashboard:
+#      rule: Host(`vault.cyberstarsng.com`)
+#      entryPoints:
+#        - websecure
+#      service: vault-service
+#      tls:
+#        certResolver: letsencrypt
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -32,10 +32,10 @@ http:
           servers:
             - url: "http://traefik:8080"
 
-      vault-service:
-        loadBalancer:
-          servers:
-            - url: "http://vault:8200"
+#      vault-service:
+#        loadBalancer:
+#          servers:
+#            - url: "http://vault:8200"
 
       rabbit-service:
         loadBalancer:
