@@ -199,11 +199,22 @@ services:
       LABELS: docker,swarm,vps
       EPHEMERAL: 1
       DISABLE_AUTO_UPDATE: 1
-      RUNNER_TOKEN_FILE: /run/secrets/github_runner_token
+      GITHUB_OWNER: cyberstarsng
+      GITHUB_REPO: proptech-core-service
+      GITHUB_PAT_FILE: /run/secrets/github_runner_token
     secrets:
       - github_runner_token
     volumes:
       - github-runner-data:/runner
+    entrypoint: |
+      /bin/bash -c "
+      set -e
+      echo 'Fetching registration token...'
+      REG_TOKEN=$(curl -s -X POST -H \"Authorization: token $(cat /run/secrets/github_runner_token)\" \
+        https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token | jq -r .token)
+      echo 'Starting GitHub Runner...'
+      /entrypoint.sh --token ${REG_TOKEN}
+      "
     deploy:
       mode: replicated
       replicas: 1
