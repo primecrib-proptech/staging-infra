@@ -98,8 +98,8 @@ fi
 
 # Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
-vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
-VAULT_PID=$!
+#vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
+#VAULT_PID=$!
 
 # Graceful shutdown
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
