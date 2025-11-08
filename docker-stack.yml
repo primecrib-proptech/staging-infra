@@ -169,7 +169,7 @@ services:
     secrets:
       - redis_root_password
     volumes:
-      - redis-data:/data
+      - redis_data:/data
     networks:
       - backend
     healthcheck:
@@ -337,6 +337,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/rabbitmq-data
+
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redis-data
 
 networks:
   backend:
