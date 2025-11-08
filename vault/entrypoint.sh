@@ -6,7 +6,7 @@ log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 log "Starting Vault setup..."
 
 DB_PASS=$(cat /run/secrets/db_password)
-VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@45.130.104.193:5432/vaultdb?sslmode=disable"
+VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
 export VAULT_CONNECTION_URL
 log "Using Vault DB connection: $VAULT_CONNECTION_URL"
 
@@ -25,7 +25,7 @@ trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID; exit 0" TER
 log "Waiting for Postgres to be ready..."
 MAX_WAIT=60
 WAITED=0
-until pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; do
+until pg_isready -h infra_postgres -p 5432 -U vault_app >/dev/null 2>&1; do
     sleep 2
     WAITED=$((WAITED + 2))
     if [ "$WAITED" -ge "$MAX_WAIT" ]; then
