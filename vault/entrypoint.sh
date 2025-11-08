@@ -34,8 +34,7 @@ if [ ! -f "$TEMPLATE" ]; then
   exit 1
 fi
 
-# Try envsubst, otherwise perform safe replacements for common placeholders:
-# supported placeholders: @VAULT_CONNECTION_URL@, ${VAULT_CONNECTION_URL}, {{VAULT_CONNECTION_URL}}
+# Generate config: prefer envsubst, fallback to sed replacements
 if command -v envsubst >/dev/null 2>&1; then
   log "Generating $OUT using envsubst"
   envsubst < "$TEMPLATE" > "$OUT" || { log "ERROR: envsubst failed"; exit 1; }
@@ -51,7 +50,7 @@ fi
 
 log "Generated $OUT (size=$(stat -c%s "$OUT" 2>/dev/null || echo unknown))"
 
-# Optionally copy unseal script if provided
+# Optionally copy unseal/init script if provided
 if [ -f /vault/unseal.sh ]; then
   cp /vault/unseal.sh /tmp/unseal.sh 2>/dev/null || true
   chmod +x /tmp/unseal.sh 2>/dev/null || true
@@ -115,15 +114,59 @@ VAULT_PID=$!
 
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
-log "Waiting for Vault to become healthy..."
-until curl -s http://localhost:8200/v1/sys/health >/dev/null 2>&1; do
-  sleep 1
-done
+log "Waiting for Vault to become healthy (handles init/unseal)..."
 
-if [ -f /tmp/unseal.sh ]; then
-  log "Running unseal script"
-  /tmp/unseal.sh || log "Warning: unseal script returned non-zero"
-fi
+MAX_HEALTH_WAIT=120
+HEALTH_WAITED=0
+HEALTH_SLEEP=2
+
+vault_health_code() {
+  curl -s -o /dev/null -w "%{http_code}" http://localhost:8200/v1/sys/health || echo "000"
+}
+
+while :; do
+  status=$(vault_health_code)
+  log "Vault health status: $status"
+
+  case "$status" in
+    200)
+      log "Vault is initialized, unsealed and active."
+      break
+      ;;
+    429)
+      log "Vault is standby (429). If running in HA, this node is standby; waiting..."
+      ;;
+    503)
+      log "Vault is sealed (503). Attempting to run unseal script if available..."
+      if [ -f /tmp/unseal.sh ]; then
+        /tmp/unseal.sh || log "Warning: unseal script returned non-zero"
+      else
+        log "No unseal script found at /tmp/unseal.sh"
+      fi
+      ;;
+    501)
+      log "Vault not initialized (501). Attempting initialization via unseal script if available..."
+      if [ -f /tmp/unseal.sh ]; then
+        /tmp/unseal.sh || log "Warning: init/unseal script returned non-zero"
+      else
+        log "No init/unseal script found at /tmp/unseal.sh"
+      fi
+      ;;
+    000)
+      log "Vault health endpoint not reachable yet."
+      ;;
+    *)
+      log "Vault returned unexpected health code: $status"
+      ;;
+  esac
+
+  sleep "$HEALTH_SLEEP"
+  HEALTH_WAITED=$((HEALTH_WAITED + HEALTH_SLEEP))
+  if [ "$HEALTH_WAITED" -ge "$MAX_HEALTH_WAIT" ]; then
+    log "Timed out waiting for Vault health ($MAX_HEALTH_WAIT s). Exiting."
+    exit 1
+  fi
+done
 
 log "Vault ready and unsealed. PID=$VAULT_PID"
 
