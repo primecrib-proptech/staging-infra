@@ -161,7 +161,7 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.minio-ui.middlewares=minio-auth@file,securityHeaders@file"
+#      - "traefik.http.routers.minio-ui.middlewares=minio-auth@file,securityHeaders@file"
 
 
 
