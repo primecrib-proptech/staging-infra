@@ -8,3 +8,17 @@ http:
       service: api@internal
       tls:
         certResolver: letsencrypt
+    vault-dashboard:
+      rule: Host(`vault.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: api@internal
+      tls:
+        certResolver: letsencrypt
+    rabbit-dashboard:
+      rule: Host(`rabbit.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: api@internal
+      tls:
+        certResolver: letsencrypt
