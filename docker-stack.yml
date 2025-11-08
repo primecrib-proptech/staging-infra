@@ -456,3 +456,5 @@ secrets:
     external: true
   redis_root_password:
     external: true
+  github-pat:
+    external: true
