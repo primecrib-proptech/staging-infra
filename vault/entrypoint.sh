@@ -150,7 +150,7 @@ vault_health_code() {
   fi
 
   if command -v wget >/dev/null 2>&1; then
-    status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/HTTP\// {print $2; exit}')
+    status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/^  HTTP\// {print $2; exit}')
     [ -z "$status" ] && echo "000" || echo "$status"
     return
   fi
@@ -161,10 +161,9 @@ vault_health_code() {
     return
   fi
 
-  # /dev/tcp fallback
+  # /dev/tcp fallback — open and verify the descriptor succeeded before using it
   if timeout 1 sh -c "cat < /dev/null > /dev/tcp/127.0.0.1/8200" >/dev/null 2>&1; then
-    exec 3<>/dev/tcp/127.0.0.1/8200 2>/dev/null || true
-    if [ -e /proc/$$/fd/3 ] || true; then
+    if exec 3<>/dev/tcp/127.0.0.1/8200 2>/dev/null; then
       printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
       status=$(head -n1 <&3 2>/dev/null | awk '{print $2}')
       exec 3>&-
@@ -176,33 +175,33 @@ vault_health_code() {
   echo "000"
 }
 
+# Unseal attempt state persists across health-loop iterations and is bounded.
 MAX_UNSEAL_ATTEMPTS=${MAX_UNSEAL_ATTEMPTS:-5}
-UNSEAL_ATTEMPTS=0
-UNSEAL_ATTEMPTED=0
+UNSEAL_ATTEMPTS=${UNSEAL_ATTEMPTS:-0}
 VAULT_UNSEAL_KEY_FILE=${VAULT_UNSEAL_KEY_FILE:-/run/secrets/vault_unseal_key}
-UNSEAL_BACKOFF_BASE=2
+UNSEAL_BACKOFF_BASE=${UNSEAL_BACKOFF_BASE:-2}
 
 attempt_unseal() {
-  # Prevent concurrent/duplicate attempts in the same run
-  if [ "$UNSEAL_ATTEMPTED" = "1" ]; then
-    log "Unseal already attempted; skipping additional unseal attempts."
+  # If we've exhausted attempts, do nothing.
+  if [ "$UNSEAL_ATTEMPTS" -ge "$MAX_UNSEAL_ATTEMPTS" ]; then
+    log "Unseal attempts exhausted (${UNSEAL_ATTEMPTS}/${MAX_UNSEAL_ATTEMPTS}); not attempting further this run."
     return 1
   fi
-  UNSEAL_ATTEMPTED=1
 
-  # Prefer executing a provided unseal/init script once
+  # Prefer executing user-provided unseal/init script once (still counts as an attempt)
   if [ -x /tmp/unseal.sh ]; then
-    log "Running /tmp/unseal.sh once..."
+    UNSEAL_ATTEMPTS=$((UNSEAL_ATTEMPTS + 1))
+    log "Running /tmp/unseal.sh (attempt ${UNSEAL_ATTEMPTS}/${MAX_UNSEAL_ATTEMPTS})..."
     if /tmp/unseal.sh >/dev/null 2>&1; then
       log "/tmp/unseal.sh succeeded."
       return 0
-    else
-      log "/tmp/unseal.sh failed."
-      # fall through to attempt operator unseal if key exists
     fi
+    log "/tmp/unseal.sh failed."
+    sleep $((UNSEAL_BACKOFF_BASE ** UNSEAL_ATTEMPTS))
+    return 1
   fi
 
-  # Require vault CLI and a key file to use operator unseal
+  # Operator unseal via vault CLI and key file
   if ! command -v vault >/dev/null 2>&1; then
     log "vault CLI not found; cannot perform operator unseal."
     return 1
@@ -219,31 +218,42 @@ attempt_unseal() {
     return 1
   fi
 
-  # Try operator unseal with limited retries and exponential backoff
-  while [ "$UNSEAL_ATTEMPTS" -lt "$MAX_UNSEAL_ATTEMPTS" ]; do
-    UNSEAL_ATTEMPTS=$((UNSEAL_ATTEMPTS + 1))
-    log "Attempting vault operator unseal (attempt ${UNSEAL_ATTEMPTS}/${MAX_UNSEAL_ATTEMPTS})..."
-    if vault operator unseal "$KEY_CONTENT" >/dev/null 2>&1; then
-      log "vault operator unseal succeeded."
-      return 0
-    fi
-    sleep_time=$((UNSEAL_BACKOFF_BASE ** UNSEAL_ATTEMPTS))
-    log "unseal attempt failed; backing off ${sleep_time}s before retry."
-    sleep "$sleep_time"
-  done
+  UNSEAL_ATTEMPTS=$((UNSEAL_ATTEMPTS + 1))
+  log "Attempting operator unseal (attempt ${UNSEAL_ATTEMPTS}/${MAX_UNSEAL_ATTEMPTS})..."
+  # Send key via stdin — safer if the key contains whitespace/newlines
+  if printf '%s\n' "$KEY_CONTENT" | vault operator unseal - >/dev/null 2>&1; then
+    log "vault operator unseal succeeded."
+    return 0
+  fi
 
-  log "Exceeded unseal attempts (${MAX_UNSEAL_ATTEMPTS}); will not retry in this run."
+  sleep_time=$((UNSEAL_BACKOFF_BASE ** UNSEAL_ATTEMPTS))
+  log "operator unseal failed; backing off ${sleep_time}s before next allowed attempt."
+  sleep "$sleep_time"
   return 1
 }
 
+# Health loop: suppress repeated identical status messages to reduce spam.
 log "Waiting for Vault to become healthy (handles init/unseal)..."
-MAX_HEALTH_WAIT=180
+MAX_HEALTH_WAIT=${MAX_HEALTH_WAIT:-180}
 health_waited=0
-sleep_interval=2
+prev_status=""
+same_count=0
+base_sleep=2
+max_sleep=30
 
 while :; do
   status=$(vault_health_code)
-  log "Vault health status: $status"
+  if [ "$status" = "$prev_status" ]; then
+    same_count=$((same_count + 1))
+  else
+    same_count=0
+    prev_status="$status"
+  fi
+
+  # Only log detailed status on first change and then every 5 repeated checks
+  if [ "$same_count" -eq 0 ] || [ $((same_count % 5)) -eq 0 ]; then
+    log "Vault health status: $status (repeat=${same_count})"
+  fi
 
   case "$status" in
     200)
@@ -251,24 +261,27 @@ while :; do
       break
       ;;
     429)
-      log "Vault is standby (429). If running HA, this node is standby; waiting..."
+      # standby — nothing to do
       ;;
     503)
-      log "Vault is sealed (503). Attempting a guarded unseal..."
-         attempt_unseal || log "Guarded unseal did not succeed; waiting before next health check."
+      log "Vault is sealed (503)."
+      attempt_unseal || log "Unseal attempt did not succeed."
       ;;
     501)
-      log "Vault not initialized (501). Attempting init/unseal if script or key available..."
-        # If init is required you may want to run an init script once; attempt_unseal checks /tmp/unseal.sh
-        attempt_unseal || log "Init/unseal attempt did not succeed; waiting before next health check."
+      log "Vault not initialized (501)."
+      attempt_unseal || log "Init/unseal attempt did not succeed."
       ;;
     000)
-      log "Vault health endpoint not reachable yet."
+      # endpoint unreachable — avoid noisy logs beyond the above suppression
       ;;
     *)
       log "Vault returned unexpected health code: $status"
       ;;
   esac
+
+  # adaptive sleep to avoid tight looping: grows with repeated identical status
+  sleep_interval=$(( base_sleep + (same_count / 5) * base_sleep ))
+  if [ "$sleep_interval" -gt "$max_sleep" ]; then sleep_interval=$max_sleep; fi
 
   sleep "$sleep_interval"
   health_waited=$((health_waited + sleep_interval))
