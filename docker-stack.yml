@@ -103,6 +103,7 @@ services:
   vault:
     build: ./vault
     image: custom-vault:1.17
+    command: [ "/bin/sh", "/vault/entrypoint.sh" ]
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
