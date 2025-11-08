@@ -17,7 +17,7 @@ fi
 envsubst < /vault/config/config.hcl > /vault/config/config.generated.hcl
 
 # Optional: copy unseal script if read-only
-cp unseal.sh /tmp/unseal.sh
+cp ./vault/unseal.sh /tmp/unseal.sh
 chmod +x /tmp/unseal.sh
 
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID; exit 0" TERM INT
