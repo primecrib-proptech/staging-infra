@@ -1,7 +1,5 @@
-# /etc/traefik/dynamic/traefik_routers.yml
 http:
   routers:
-
     traefik-dashboard:
       rule: Host(`traefik.cyberstarsng.com`)
       entryPoints:
