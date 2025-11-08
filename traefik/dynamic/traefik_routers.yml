@@ -33,6 +33,16 @@ http:
         - rabbit-auth
 #        - rabbit-whitelist
 
+    minio-dashboard:
+      rule: Host(`minio.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: minio-service
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - minio-auth
+
   services:
 
     vault-service:
@@ -44,3 +54,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://rabbitmq:15672"
+
+    minio-service:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9001"

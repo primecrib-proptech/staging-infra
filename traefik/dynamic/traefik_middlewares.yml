@@ -29,6 +29,9 @@ http:
 #          - "10.0.0.0/8"
 #          - "127.0.0.1/32"
 #          - "45.130.104.193"
+    minio-auth:
+      basicAuth:
+        usersFile: /run/secrets/traefik_basicauth
     # Redirect HTTP → HTTPS
     redirect-to-https:
       redirectScheme:

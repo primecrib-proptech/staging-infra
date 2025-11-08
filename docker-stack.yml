@@ -132,6 +132,37 @@ services:
       - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,securityHeaders@file"
 
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    secrets:
+      - minio_root_password
+    volumes:
+      - minio_data:/data
+      - minio_config:/root/.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - backend
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-ui.middlewares=minio-auth@file,securityHeaders@file"
+
+
+
 #  vault:
 #    image: hashicorp/vault:1.17
 #    command: [ "/bin/sh", "/vault/entrypoint.sh" ]
