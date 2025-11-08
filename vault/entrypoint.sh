@@ -6,8 +6,6 @@ log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 TEMPLATE=/vault/config/config.hcl
 OUT=/vault/config.generated.hcl
 
-log "TEMPLATE: $(cat $TEMPLATE)"
-
 log "Starting Vault entrypoint..."
 
 # Load secrets
@@ -122,6 +120,40 @@ MAX_HEALTH_WAIT=120
 HEALTH_WAITED=0
 HEALTH_SLEEP=2
 
+#vault_health_code() {
+#  HEALTH_URL="http://localhost:8200/v1/sys/health"
+#
+#  if command -v curl >/dev/null 2>&1; then
+#    curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000"
+#    return
+#  fi
+#
+#  if command -v wget >/dev/null 2>&1; then
+#    # wget prints server response to stderr; capture and parse the HTTP status code
+#    status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/HTTP\// {print $2; exit}')
+#    if [ -z "$status" ]; then
+#      echo "000"
+#    else
+#      echo "$status"
+#    fi
+#    return
+#  fi
+#
+#  if command -v nc >/dev/null 2>&1; then
+#    # send minimal HTTP/1.0 request and parse the status code from the first line
+#    status=$(printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' | nc -w 2 localhost 8200 2>/dev/null | head -n1 | awk '{print $2}')
+#    if [ -z "$status" ]; then
+#      echo "000"
+#    else
+#      echo "$status"
+#    fi
+#    return
+#  fi
+#
+#  # no HTTP tool available
+#  echo "000"
+#}
+
 vault_health_code() {
   HEALTH_URL="http://localhost:8200/v1/sys/health"
 
@@ -131,28 +163,29 @@ vault_health_code() {
   fi
 
   if command -v wget >/dev/null 2>&1; then
-    # wget prints server response to stderr; capture and parse the HTTP status code
     status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/HTTP\// {print $2; exit}')
-    if [ -z "$status" ]; then
-      echo "000"
-    else
-      echo "$status"
-    fi
+    [ -z "$status" ] && echo "000" || echo "$status"
     return
   fi
 
   if command -v nc >/dev/null 2>&1; then
-    # send minimal HTTP/1.0 request and parse the status code from the first line
     status=$(printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' | nc -w 2 localhost 8200 2>/dev/null | head -n1 | awk '{print $2}')
-    if [ -z "$status" ]; then
-      echo "000"
-    else
-      echo "$status"
-    fi
+    [ -z "$status" ] && echo "000" || echo "$status"
     return
   fi
 
-  # no HTTP tool available
+  # Try /dev/tcp fallback (may require sh that supports it)
+  if [ -e /dev/tcp/localhost/8200 ] 2>/dev/null || true; then
+    exec 3<>/dev/tcp/localhost/8200 2>/dev/null || true
+    if [ -t 3 ] || [ -e /proc/$$/fd/3 ]; then
+      printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+      status=$(head -n1 <&3 2>/dev/null | awk '{print $2}')
+      exec 3>&-
+      [ -z "$status" ] && echo "000" || echo "$status"
+      return
+    fi
+  fi
+
   echo "000"
 }
 
