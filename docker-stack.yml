@@ -141,6 +141,7 @@ services:
       MINIO_DEFAULT_BUCKETS: api-bucket
     secrets:
       - minio_root_password
+      - traefik_basicauth
     volumes:
       - minio_data:/data
       - minio_config:/root/.minio
