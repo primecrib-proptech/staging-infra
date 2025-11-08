@@ -176,6 +176,66 @@ vault_health_code() {
   echo "000"
 }
 
+MAX_UNSEAL_ATTEMPTS=${MAX_UNSEAL_ATTEMPTS:-5}
+UNSEAL_ATTEMPTS=0
+UNSEAL_ATTEMPTED=0
+VAULT_UNSEAL_KEY_FILE=${VAULT_UNSEAL_KEY_FILE:-/run/secrets/vault_unseal_key}
+UNSEAL_BACKOFF_BASE=2
+
+attempt_unseal() {
+  # Prevent concurrent/duplicate attempts in the same run
+  if [ "$UNSEAL_ATTEMPTED" = "1" ]; then
+    log "Unseal already attempted; skipping additional unseal attempts."
+    return 1
+  fi
+  UNSEAL_ATTEMPTED=1
+
+  # Prefer executing a provided unseal/init script once
+  if [ -x /tmp/unseal.sh ]; then
+    log "Running /tmp/unseal.sh once..."
+    if /tmp/unseal.sh >/dev/null 2>&1; then
+      log "/tmp/unseal.sh succeeded."
+      return 0
+    else
+      log "/tmp/unseal.sh failed."
+      # fall through to attempt operator unseal if key exists
+    fi
+  fi
+
+  # Require vault CLI and a key file to use operator unseal
+  if ! command -v vault >/dev/null 2>&1; then
+    log "vault CLI not found; cannot perform operator unseal."
+    return 1
+  fi
+
+  if [ ! -f "$VAULT_UNSEAL_KEY_FILE" ]; then
+    log "No unseal key file at $VAULT_UNSEAL_KEY_FILE; cannot unseal."
+    return 1
+  fi
+
+  KEY_CONTENT=$(cat "$VAULT_UNSEAL_KEY_FILE" 2>/dev/null || true)
+  if [ -z "$KEY_CONTENT" ]; then
+    log "Unseal key file is empty."
+    return 1
+  fi
+
+  # Try operator unseal with limited retries and exponential backoff
+  while [ "$UNSEAL_ATTEMPTS" -lt "$MAX_UNSEAL_ATTEMPTS" ]; do
+    UNSEAL_ATTEMPTS=$((UNSEAL_ATTEMPTS + 1))
+    log "Attempting vault operator unseal (attempt ${UNSEAL_ATTEMPTS}/${MAX_UNSEAL_ATTEMPTS})..."
+    if vault operator unseal "$KEY_CONTENT" >/dev/null 2>&1; then
+      log "vault operator unseal succeeded."
+      return 0
+    fi
+    sleep_time=$((UNSEAL_BACKOFF_BASE ** UNSEAL_ATTEMPTS))
+    log "unseal attempt failed; backing off ${sleep_time}s before retry."
+    sleep "$sleep_time"
+  done
+
+  log "Exceeded unseal attempts (${MAX_UNSEAL_ATTEMPTS}); will not retry in this run."
+  return 1
+}
+
 log "Waiting for Vault to become healthy (handles init/unseal)..."
 MAX_HEALTH_WAIT=180
 health_waited=0
@@ -194,16 +254,13 @@ while :; do
       log "Vault is standby (429). If running HA, this node is standby; waiting..."
       ;;
     503)
-      log "Vault is sealed (503). Running unseal script if present..."
-      if [ -f /tmp/unseal.sh ]; then
-        /tmp/unseal.sh || log "Warning: unseal script returned non-zero"
-      fi
+      log "Vault is sealed (503). Attempting a guarded unseal..."
+         attempt_unseal || log "Guarded unseal did not succeed; waiting before next health check."
       ;;
     501)
-      log "Vault not initialized (501). Running init/unseal script if present..."
-      if [ -f /tmp/unseal.sh ]; then
-        /tmp/unseal.sh || log "Warning: init/unseal script returned non-zero"
-      fi
+      log "Vault not initialized (501). Attempting init/unseal if script or key available..."
+        # If init is required you may want to run an init script once; attempt_unseal checks /tmp/unseal.sh
+        attempt_unseal || log "Init/unseal attempt did not succeed; waiting before next health check."
       ;;
     000)
       log "Vault health endpoint not reachable yet."
