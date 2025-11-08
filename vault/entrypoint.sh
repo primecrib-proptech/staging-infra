@@ -30,30 +30,25 @@ log "Using Vault DB connection: $VAULT_CONNECTION_URL"
 
 # Ensure template exists
 if [ ! -f "$TEMPLATE" ]; then
-  log "ERROR: template $TEMPLATE not found. Cannot generate $OUT"
+  log "ERROR: template $TEMPLATE not found"
   exit 1
 fi
 
-# Generate config: prefer envsubst, fallback to sed replacements
+# Generate config
 if command -v envsubst >/dev/null 2>&1; then
   log "Generating $OUT using envsubst"
   envsubst < "$TEMPLATE" > "$OUT" || { log "ERROR: envsubst failed"; exit 1; }
 else
-  log "envsubst not found, using sed fallback for VAULT_CONNECTION_URL"
-  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g; s|\\\${VAULT_CONNECTION_URL}|$VAULT_CONNECTION_URL|g; s|{{VAULT_CONNECTION_URL}}|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
-fi
-
-if [ ! -s "$OUT" ]; then
-  log "ERROR: generated file $OUT is empty"
-  exit 1
+  log "envsubst not found, using sed fallback"
+  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
 fi
 
 log "Generated $OUT (size=$(stat -c%s "$OUT" 2>/dev/null || echo unknown))"
 
-# Optionally copy unseal/init script if provided
+# Copy unseal script
 if [ -f /vault/unseal.sh ]; then
-  cp /vault/unseal.sh /tmp/unseal.sh 2>/dev/null || true
-  chmod +x /tmp/unseal.sh 2>/dev/null || true
+  cp /vault/unseal.sh /tmp/unseal.sh
+  chmod +x /tmp/unseal.sh
 else
   log "Warning: /vault/unseal.sh not found"
 fi
@@ -63,172 +58,81 @@ wait_for_pg() {
   HOST=infra_postgres
   PORT=5432
   USER=vault_app
-  MAX_WAIT=60
+  MAX_WAIT=120
   WAITED=0
 
-  if command -v pg_isready >/dev/null 2>&1; then
-    log "Using pg_isready to wait for Postgres"
-    until PGPASSWORD="$DB_PASS" pg_isready -h "$HOST" -p "$PORT" -U "$USER" >/dev/null 2>&1; do
-      sleep 2
-      WAITED=$((WAITED + 2))
-      if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-        return 1
-      fi
-    done
-    return 0
-  fi
-
-  if command -v nc >/dev/null 2>&1; then
-    log "pg_isready not found; using nc TCP probe"
-    until nc -z "$HOST" "$PORT" >/dev/null 2>&1; do
-      sleep 2
-      WAITED=$((WAITED + 2))
-      if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-        return 1
-      fi
-    done
-    return 0
-  fi
-
-  log "pg_isready and nc not available; using /dev/tcp probe"
-  until timeout 1 sh -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" >/dev/null 2>&1; do
+  log "Waiting for Postgres at $HOST:$PORT..."
+  until PGPASSWORD="$DB_PASS" pg_isready -h "$HOST" -p "$PORT" -U "$USER" >/dev/null 2>&1; do
     sleep 2
     WAITED=$((WAITED + 2))
     if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+      log "Postgres not ready after $MAX_WAIT seconds"
       return 1
     fi
   done
+  log "Postgres is ready"
   return 0
 }
 
-log "Waiting for Postgres to be ready..."
 if ! wait_for_pg; then
-  log "Postgres not ready after timeout, exiting."
   exit 1
 fi
 
-# Start Vault using the generated config
+# Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
-vault server -config="$OUT" &
+vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
 VAULT_PID=$!
 
+# Graceful shutdown
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
-log "Waiting for Vault to become healthy (handles init/unseal)..."
+# Stream logs in background
+tail -f /vault/logs/vault.log &
+TAIL_PID=$!
 
-MAX_HEALTH_WAIT=120
+# Health check loop
+HEALTH_URL="http://127.0.0.1:8200/v1/sys/health"
+MAX_HEALTH_WAIT=180
 HEALTH_WAITED=0
-HEALTH_SLEEP=2
 
-#vault_health_code() {
-#  HEALTH_URL="http://localhost:8200/v1/sys/health"
-#
-#  if command -v curl >/dev/null 2>&1; then
-#    curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000"
-#    return
-#  fi
-#
-#  if command -v wget >/dev/null 2>&1; then
-#    # wget prints server response to stderr; capture and parse the HTTP status code
-#    status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/HTTP\// {print $2; exit}')
-#    if [ -z "$status" ]; then
-#      echo "000"
-#    else
-#      echo "$status"
-#    fi
-#    return
-#  fi
-#
-#  if command -v nc >/dev/null 2>&1; then
-#    # send minimal HTTP/1.0 request and parse the status code from the first line
-#    status=$(printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' | nc -w 2 localhost 8200 2>/dev/null | head -n1 | awk '{print $2}')
-#    if [ -z "$status" ]; then
-#      echo "000"
-#    else
-#      echo "$status"
-#    fi
-#    return
-#  fi
-#
-#  # no HTTP tool available
-#  echo "000"
-#}
-
-vault_health_code() {
-  HEALTH_URL="http://localhost:8200/v1/sys/health"
-
-  if command -v curl >/dev/null 2>&1; then
-    curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000"
-    return
-  fi
-
-  if command -v wget >/dev/null 2>&1; then
-    status=$(wget --server-response --spider "$HEALTH_URL" 2>&1 | awk '/HTTP\// {print $2; exit}')
-    [ -z "$status" ] && echo "000" || echo "$status"
-    return
-  fi
-
-  if command -v nc >/dev/null 2>&1; then
-    status=$(printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' | nc -w 2 localhost 8200 2>/dev/null | head -n1 | awk '{print $2}')
-    [ -z "$status" ] && echo "000" || echo "$status"
-    return
-  fi
-
-  # Try /dev/tcp fallback (may require sh that supports it)
-  if [ -e /dev/tcp/localhost/8200 ] 2>/dev/null || true; then
-    exec 3<>/dev/tcp/localhost/8200 2>/dev/null || true
-    if [ -t 3 ] || [ -e /proc/$$/fd/3 ]; then
-      printf 'GET /v1/sys/health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
-      status=$(head -n1 <&3 2>/dev/null | awk '{print $2}')
-      exec 3>&-
-      [ -z "$status" ] && echo "000" || echo "$status"
-      return
-    fi
-  fi
-
-  echo "000"
-}
-
+log "Waiting for Vault to become healthy..."
 while :; do
-  status=$(vault_health_code)
-  log "Vault health status: $status"
+  if command -v curl >/dev/null 2>&1; then
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+  else
+    STATUS="000"
+  fi
 
-  case "$status" in
+  log "Vault health status: $STATUS"
+
+  case "$STATUS" in
     200)
-      log "Vault is initialized, unsealed and active."
+      log "Vault is initialized, unsealed, and active"
       break
       ;;
     429)
-      log "Vault is standby (429). If running in HA, this node is standby; waiting..."
+      log "Vault is standby (HA)"
       ;;
-    503)
-      log "Vault is sealed (503). Attempting to run unseal script if available..."
+    503|501)
+      log "Vault sealed or not initialized, attempting unseal/init"
       if [ -f /tmp/unseal.sh ]; then
-        /tmp/unseal.sh || log "Warning: unseal script returned non-zero"
+        /tmp/unseal.sh || log "Warning: unseal/init script failed"
       else
         log "No unseal script found at /tmp/unseal.sh"
       fi
       ;;
-    501)
-      log "Vault not initialized (501). Attempting initialization via unseal script if available..."
-      if [ -f /tmp/unseal.sh ]; then
-        /tmp/unseal.sh || log "Warning: init/unseal script returned non-zero"
-      else
-        log "No init/unseal script found at /tmp/unseal.sh"
-      fi
-      ;;
     000)
-      log "Vault health endpoint not reachable yet."
+      log "Vault health endpoint not reachable yet"
       ;;
     *)
-      log "Vault returned unexpected health code: $status"
+      log "Unexpected health code: $STATUS"
       ;;
   esac
 
-  sleep "$HEALTH_SLEEP"
-  HEALTH_WAITED=$((HEALTH_WAITED + HEALTH_SLEEP))
+  sleep 2
+  HEALTH_WAITED=$((HEALTH_WAITED + 2))
   if [ "$HEALTH_WAITED" -ge "$MAX_HEALTH_WAIT" ]; then
-    log "Timed out waiting for Vault health ($MAX_HEALTH_WAIT s). Exiting."
+    log "Timed out waiting for Vault health ($MAX_HEALTH_WAIT s)"
     exit 1
   fi
 done
