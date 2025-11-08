@@ -3,6 +3,10 @@ set -e
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
+log "[INIT] Installing PostgreSQL client tools..."
+apt-get update -qq && apt-get install -y -qq postgresql-client curl && rm -rf /var/lib/apt/lists/*
+
+
 TEMPLATE=/vault/config/config.hcl
 OUT=/vault/config.generated.hcl
 
@@ -87,7 +91,8 @@ VAULT_PID=$!
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
 # Stream logs in background
-tail -f /vault/logs/vault.log &
+exec vault server -config="$OUT"
+#tail -f /vault/logs/vault.log &
 TAIL_PID=$!
 
 # Health check loop
