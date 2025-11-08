@@ -51,14 +51,14 @@ services:
         - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
         - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
-#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist"
-#        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
+        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
 
         # Additional labels for security and authentication
         - "traefik.http.routers.traefik-dashboard.tls=true"
         - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist,securityHeaders@file"
+        - "traefik.http.routers.traefik-dashboard.middlewares=auth@file,whitelist@file,securityHeaders@file,compression@file"
         - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
-        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
+#        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
 
   postgres:
     image: postgis/postgis:16-3.5
