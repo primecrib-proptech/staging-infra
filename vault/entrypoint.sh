@@ -17,6 +17,7 @@ else
   exit 1
 fi
 
+export VAULT_POSTGRES_PASSWORD=$(cat /run/secrets/db_password)
 
 TEMPLATE=/vault/config/config.hcl
 OUT=/vault/config.generated.hcl
