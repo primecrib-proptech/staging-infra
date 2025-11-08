@@ -106,6 +106,10 @@ services:
 
   rabbitmq:
     image: rabbitmq:4.2.0-management
+    command: >
+      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
+             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
+             exec rabbitmq-server"
     ports:
       - "5672:5672"
     environment:
