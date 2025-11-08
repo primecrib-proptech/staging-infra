@@ -71,43 +71,24 @@ else
   log "Warning: /vault/unseal.sh not found"
 fi
 
-# Wait for Postgres
-wait_for_pg() {
-  HOST=infra_postgres
-  PORT=5432
-  USER=vault_app
-  MAX_WAIT=120
-  WAITED=0
-
-  log "Waiting for Postgres at $HOST:$PORT..."
-  until PGPASSWORD="$DB_PASS" pg_isready -h "$HOST" -p "$PORT" -U "$USER" >/dev/null 2>&1; do
-    sleep 2
-    WAITED=$((WAITED + 2))
-    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-      log "Postgres not ready after $MAX_WAIT seconds"
-      return 1
-    fi
-  done
-  log "Postgres is ready"
-  return 0
-}
-
-if ! wait_for_pg; then
-  exit 1
-fi
+# Wait for Postgres (simplified)
+until PGPASSWORD="$DB_PASS" pg_isready -h infra_postgres -p 5432 -U vault_app; do
+  sleep 2
+done
 
 # Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
-vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
+#vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
+vault server -config="$OUT"
 VAULT_PID=$!
 
 # Graceful shutdown
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
 # Stream logs in background
-exec vault server -config="$OUT"
+#exec vault server -config="$OUT"
 #tail -f /vault/logs/vault.log &
-TAIL_PID=$!
+#TAIL_PID=$!
 
 # Auto-unseal
 if [ -f /tmp/unseal.sh ]; then
