@@ -109,13 +109,13 @@ services:
     ports:
       - "5672:5672"
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS_FILE: /run/secret/rabbit_password
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
     secrets:
       - rabbit_password
       - traefik_basicauth
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     networks:
       - backend
     healthcheck:
