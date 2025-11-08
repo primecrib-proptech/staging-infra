@@ -149,7 +149,7 @@ services:
 #      - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
 
       # Security and compression middlewares
-      - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
+#      - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
 
 
 
