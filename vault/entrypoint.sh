@@ -3,6 +3,8 @@ set -e
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
+mkdir -p /vault/logs
+
 log "[INIT] Installing PostgreSQL client tools..."
 if command -v apk >/dev/null 2>&1; then
   log "[INIT] Installing PostgreSQL client and curl (Alpine)..."
@@ -14,7 +16,6 @@ else
   log "ERROR: Unknown base image (no apk or apt-get found)"
   exit 1
 fi
-
 
 
 TEMPLATE=/vault/config/config.hcl
@@ -108,52 +109,29 @@ exec vault server -config="$OUT"
 #tail -f /vault/logs/vault.log &
 TAIL_PID=$!
 
-# Health check loop
+# Auto-unseal
+if [ -f /tmp/unseal.sh ]; then
+    log "Running auto-unseal script"
+    /tmp/unseal.sh
+fi
+
+# Wait until Vault is healthy
 HEALTH_URL="http://127.0.0.1:8200/v1/sys/health"
 MAX_HEALTH_WAIT=180
 HEALTH_WAITED=0
-
-log "Waiting for Vault to become healthy..."
-while :; do
-  if command -v curl >/dev/null 2>&1; then
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
-  else
-    STATUS="000"
-  fi
-
-  log "Vault health status: $STATUS"
-
-  case "$STATUS" in
-    200)
-      log "Vault is initialized, unsealed, and active"
-      break
-      ;;
-    429)
-      log "Vault is standby (HA)"
-      ;;
-    503|501)
-      log "Vault sealed or not initialized, attempting unseal/init"
-      if [ -f /tmp/unseal.sh ]; then
-        /tmp/unseal.sh || log "Warning: unseal/init script failed"
-      else
-        log "No unseal script found at /tmp/unseal.sh"
-      fi
-      ;;
-    000)
-      log "Vault health endpoint not reachable yet"
-      ;;
-    *)
-      log "Unexpected health code: $STATUS"
-      ;;
-  esac
-
-  sleep 2
-  HEALTH_WAITED=$((HEALTH_WAITED + 2))
-  if [ "$HEALTH_WAITED" -ge "$MAX_HEALTH_WAIT" ]; then
-    log "Timed out waiting for Vault health ($MAX_HEALTH_WAIT s)"
-    exit 1
-  fi
+while ! curl -s "$HEALTH_URL" >/dev/null 2>&1; do
+    sleep 2
+    HEALTH_WAITED=$((WAITED + 2))
+    if [ "HEALTH_WAITED" -ge "MAX_HEALTH_WAIT" ]; then
+        log "Vault health check timed out"
+        exit 1
+    fi
 done
+log "Vault is up and unsealed!"
+
+# Tail logs or wait for Vault
+tail -f /vault/logs/vault.log &
+wait $VAULT_PID
 
 log "Vault ready and unsealed. PID=$VAULT_PID"
 
