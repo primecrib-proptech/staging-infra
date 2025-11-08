@@ -152,8 +152,8 @@ services:
     image: rabbitmq:3.12-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"      # AMQP
-      - "15672:15672"    # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
     secrets:
@@ -164,12 +164,12 @@ services:
       - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     command: >
       sh -c "export RABBITMQ_DEFAULT_USER=admin &&
-             export RABBITMQ_DEFAULT_PASS=$(cat /run/secrets/rabbit_password) &&
+             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              exec rabbitmq-server"
     networks:
       - backend
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -177,7 +177,7 @@ services:
       restart_policy:
         condition: on-failure
       placement:
-        constraints: [node.role == manager]
+        constraints: [ node.role == manager ]
     labels:
       - "traefik.enable=true"
 
@@ -196,6 +196,7 @@ services:
 
       # Security + performance middlewares
       - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
+
 
 
 #  vault:
