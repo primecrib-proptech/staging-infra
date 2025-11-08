@@ -161,7 +161,7 @@ services:
       - traefik_basicauth
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     command: >
       sh -c "export RABBITMQ_DEFAULT_USER=admin &&
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
