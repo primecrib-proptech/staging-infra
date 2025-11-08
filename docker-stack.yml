@@ -101,7 +101,7 @@ services:
       retries: 5
 
   vault:
-    image: hashicorp/vault:1.17
+    build: ./vault
     command: [ "/bin/sh", "/vault/entrypoint.sh" ]
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
