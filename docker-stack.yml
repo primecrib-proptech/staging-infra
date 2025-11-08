@@ -172,6 +172,11 @@ services:
       - redis_data:/data
     networks:
       - backend
+    sysctls:
+      vm.overcommit_memory: 1
+    configs:
+      - source: redis_conf
+        target: /usr/local/etc/redis/redis.conf
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
       interval: 10s
@@ -253,6 +258,9 @@ services:
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
+configs:
+  redis_conf:
+    file: ./redis/redis.conf
 volumes:
   postgres_data:
     driver: local
