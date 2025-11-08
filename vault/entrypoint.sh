@@ -54,7 +54,6 @@ if command -v envsubst >/dev/null 2>&1; then
   envsubst < "$TEMPLATE" > "$OUT" || { log "ERROR: envsubst failed"; exit 1; }
 else
   log "envsubst not found, using sed fallback"
-#  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
   sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g; \
        s|\${VAULT_CONNECTION_URL}|$VAULT_CONNECTION_URL|g; \
        s|{{VAULT_CONNECTION_URL}}|$VAULT_CONNECTION_URL|g" \
@@ -98,21 +97,14 @@ fi
 
 # Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
-vault server -config="$OUT"
-#vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
-#VAULT_PID=$!
-
-# Auto-unseal
-if [ -f /tmp/unseal.sh ]; then
-  log "Running auto-unseal script"
-  /tmp/unseal.sh
-fi
+vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
+VAULT_PID=$!
 
 # Graceful shutdown
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
 # Stream logs in background
-#exec vault server -config="$OUT"
+exec vault server -config="$OUT"
 #tail -f /vault/logs/vault.log &
 TAIL_PID=$!
 
