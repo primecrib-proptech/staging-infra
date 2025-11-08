@@ -38,8 +38,8 @@ http:
       service: minio-service
       tls:
         certResolver: letsencrypt
-      middlewares:
-        - minio-auth
+#      middlewares:
+#        - minio-auth
 
   services:
 
