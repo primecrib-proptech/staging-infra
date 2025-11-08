@@ -6,29 +6,29 @@ http:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
     dashboard-whitelist:
-      ipAllowList:
-        sourceRange:
-          - "10.0.0.0/8"
-          - "127.0.0.1/32"
-          - "45.130.104.193"
+#      ipAllowList:
+#        sourceRange:
+#          - "10.0.0.0/8"
+#          - "127.0.0.1/32"
+#          - "45.130.104.193"
     vault-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-    vault-whitelist:
-      ipAllowList:
-        sourceRange:
-          - "10.0.0.0/8"
-          - "127.0.0.1/32"
-          - "45.130.104.193"
+#    vault-whitelist:
+#      ipAllowList:
+#        sourceRange:
+#          - "10.0.0.0/8"
+#          - "127.0.0.1/32"
+#          - "45.130.104.193"
     rabbit-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-    rabbit-whitelist:
-      ipAllowList:
-        sourceRange:
-          - "10.0.0.0/8"
-          - "127.0.0.1/32"
-          - "45.130.104.193"
+#    rabbit-whitelist:
+#      ipAllowList:
+#        sourceRange:
+#          - "10.0.0.0/8"
+#          - "127.0.0.1/32"
+#          - "45.130.104.193"
     # Redirect HTTP → HTTPS
     redirect-to-https:
       redirectScheme:
@@ -71,13 +71,13 @@ http:
         minResponseBodyBytes: 1024
 
     # IP Whitelist (for dashboard)
-    ipwhitelist:
-      ipAllowList:
-        sourceRange:
-          - "127.0.0.1/32"
-          - "45.130.104.193" #/32"  # Your trusted IP
-        ipStrategy:
-          depth: 1
+#    ipwhitelist:
+#      ipAllowList:
+#        sourceRange:
+#          - "127.0.0.1/32"
+#          - "45.130.104.193" #/32"  # Your trusted IP
+#        ipStrategy:
+#          depth: 1
 
     # Retry
     retry:
