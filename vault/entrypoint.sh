@@ -3,61 +3,45 @@ set -e
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
-log "Starting Vault setup..."
+TEMPLATE=/vault/config/config.hcl
+OUT=/vault/config.generated.hcl
 
-DB_PASS=$(cat /run/secrets/db_password)
-export PGPASSWORD="$DB_PASS"
-VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
-export VAULT_CONNECTION_URL
-log "Using Vault DB connection: $VAULT_CONNECTION_URL"
+log "Starting Vault entrypoint..."
 
-# Try to ensure useful networking/tools are available
-install_envsubst() {
-  if command -v apk >/dev/null 2>&1; then
-    apk add --no-cache gettext >/dev/null 2>&1 || return 1
-  elif command -v apt-get >/dev/null 2>&1; then
-    apt-get update -y >/dev/null 2>&1 || true
-    apt-get install -y gettext-base >/dev/null 2>&1 || return 1
-  fi
-  return 0
-}
-
-# Install postgres client if possible (used for pg_isready)
-if command -v apk >/dev/null 2>&1; then
-  apk add --no-cache postgresql-client >/dev/null 2>&1 || true
-elif command -v apt-get >/dev/null 2>&1; then
-  apt-get update -y >/dev/null 2>&1 || true
-  apt-get install -y postgresql-client >/dev/null 2>&1 || true
+# Load secrets
+if [ -f /run/secrets/db_password ]; then
+  DB_PASS=$(cat /run/secrets/db_password)
+else
+  log "ERROR: /run/secrets/db_password not found"
+  exit 1
 fi
 
-# Ensure template exists
-TEMPLATE=/vault/config/config.hcl
-OUT=/vault/config/config.generated.hcl
+# Prefer explicit connection URL secret if provided
+if [ -f /run/secrets/vault_connection_url ]; then
+  VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
+else
+  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+fi
 
+export PGPASSWORD="$DB_PASS"
+export VAULT_CONNECTION_URL
+
+log "Using Vault DB connection: $VAULT_CONNECTION_URL"
+
+# Ensure template exists
 if [ ! -f "$TEMPLATE" ]; then
   log "ERROR: template $TEMPLATE not found. Cannot generate $OUT"
   exit 1
 fi
 
-# Ensure envsubst is available (try to install if missing)
-if ! command -v envsubst >/dev/null 2>&1; then
-  log "envsubst not found; attempting to install..."
-  if ! install_envsubst; then
-    log "ERROR: could not install envsubst. Ensure gettext/envsubst is available in the image."
-    exit 1
-  fi
-  # recheck
-  if ! command -v envsubst >/dev/null 2>&1; then
-    log "ERROR: envsubst still not available after install attempt."
-    exit 1
-  fi
-fi
-
-# Generate config and verify
-log "Generating $OUT from $TEMPLATE"
-if ! envsubst < "$TEMPLATE" > "$OUT"; then
-  log "ERROR: envsubst failed to generate $OUT"
-  exit 1
+# Try envsubst, otherwise perform safe replacements for common placeholders:
+# supported placeholders: @VAULT_CONNECTION_URL@, ${VAULT_CONNECTION_URL}, {{VAULT_CONNECTION_URL}}
+if command -v envsubst >/dev/null 2>&1; then
+  log "Generating $OUT using envsubst"
+  envsubst < "$TEMPLATE" > "$OUT" || { log "ERROR: envsubst failed"; exit 1; }
+else
+  log "envsubst not found, using sed fallback for VAULT_CONNECTION_URL"
+  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g; s|\\\${VAULT_CONNECTION_URL}|$VAULT_CONNECTION_URL|g; s|{{VAULT_CONNECTION_URL}}|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
 fi
 
 if [ ! -s "$OUT" ]; then
@@ -67,15 +51,80 @@ fi
 
 log "Generated $OUT (size=$(stat -c%s "$OUT" 2>/dev/null || echo unknown))"
 
-# copy unseal script if read-only
-if [ -f ./vault/unseal.sh ]; then
-  cp ./vault/unseal.sh /tmp/unseal.sh
-  chmod +x /tmp/unseal.sh
+# Optionally copy unseal script if provided
+if [ -f /vault/unseal.sh ]; then
+  cp /vault/unseal.sh /tmp/unseal.sh 2>/dev/null || true
+  chmod +x /tmp/unseal.sh 2>/dev/null || true
 else
-  log "Warning: ./vault/unseal.sh not found"
+  log "Warning: /vault/unseal.sh not found"
 fi
+
+# Wait for Postgres
+wait_for_pg() {
+  HOST=infra_postgres
+  PORT=5432
+  USER=vault_app
+  MAX_WAIT=60
+  WAITED=0
+
+  if command -v pg_isready >/dev/null 2>&1; then
+    log "Using pg_isready to wait for Postgres"
+    until PGPASSWORD="$DB_PASS" pg_isready -h "$HOST" -p "$PORT" -U "$USER" >/dev/null 2>&1; do
+      sleep 2
+      WAITED=$((WAITED + 2))
+      if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        return 1
+      fi
+    done
+    return 0
+  fi
+
+  if command -v nc >/dev/null 2>&1; then
+    log "pg_isready not found; using nc TCP probe"
+    until nc -z "$HOST" "$PORT" >/dev/null 2>&1; do
+      sleep 2
+      WAITED=$((WAITED + 2))
+      if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        return 1
+      fi
+    done
+    return 0
+  fi
+
+  log "pg_isready and nc not available; using /dev/tcp probe"
+  until timeout 1 sh -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" >/dev/null 2>&1; do
+    sleep 2
+    WAITED=$((WAITED + 2))
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+log "Waiting for Postgres to be ready..."
+if ! wait_for_pg; then
+  log "Postgres not ready after timeout, exiting."
+  exit 1
+fi
+
+# Start Vault using the generated config
+log "Launching Vault with $OUT"
+vault server -config="$OUT" &
+VAULT_PID=$!
 
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
-# (rest of original script continues: wait_for_pg, start vault, unseal, etc.)
-# --- preserve existing wait_for_pg and vault start logic below ---
+log "Waiting for Vault to become healthy..."
+until curl -s http://localhost:8200/v1/sys/health >/dev/null 2>&1; do
+  sleep 1
+done
+
+if [ -f /tmp/unseal.sh ]; then
+  log "Running unseal script"
+  /tmp/unseal.sh || log "Warning: unseal script returned non-zero"
+fi
+
+log "Vault ready and unsealed. PID=$VAULT_PID"
+
+wait $VAULT_PID
