@@ -98,14 +98,21 @@ fi
 
 # Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
+vault server -config="$OUT"
 #vault server -config="$OUT" > /vault/logs/vault.log 2>&1 &
 #VAULT_PID=$!
+
+# Auto-unseal
+if [ -f /tmp/unseal.sh ]; then
+  log "Running auto-unseal script"
+  /tmp/unseal.sh
+fi
 
 # Graceful shutdown
 trap "log 'Caught SIGTERM, shutting down Vault...'; kill $VAULT_PID 2>/dev/null || true; exit 0" TERM INT
 
 # Stream logs in background
-exec vault server -config="$OUT"
+#exec vault server -config="$OUT"
 #tail -f /vault/logs/vault.log &
 TAIL_PID=$!
 
