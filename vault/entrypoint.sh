@@ -72,11 +72,6 @@ else
   log "Warning: /vault/unseal.sh not found"
 fi
 
-# Wait for Postgres (simplified)
-#until PGPASSWORD="$DB_PASS" pg_isready -h postgres -p 5432 -U vault_app; do
-#  sleep 2
-#done
-
 log "Waiting for Postgres to become ready..."
 for i in $(seq 1 30); do
   if pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; then
