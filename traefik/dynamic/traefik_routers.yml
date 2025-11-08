@@ -4,7 +4,7 @@ http:
       rule: Host(`traefik.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: api@internal
+      service: traefik-dashboard-service
       tls:
         certResolver: letsencrypt
 
@@ -25,10 +25,10 @@ http:
         certResolver: letsencrypt
 
   services:
-#    traefik-dashboard-service:
-#      loadBalancer:
-#        servers:
-#          - url: "http://traefik:8080"
+    traefik-dashboard-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik:8080"
 
     vault-service:
       loadBalancer:
