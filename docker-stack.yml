@@ -20,7 +20,6 @@ services:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik_logs:/var/log/traefik
     secrets:
-      - dashboard_users
       - traefik_basicauth
     networks:
       - traefik-public

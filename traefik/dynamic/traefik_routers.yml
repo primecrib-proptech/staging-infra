@@ -19,8 +19,8 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
-        - rabbit-auth
-        - rabbit-whitelist
+        - vault-auth
+        - vault-whitelist
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -29,6 +29,9 @@ http:
       service: rabbit-service
       tls:
         certResolver: letsencrypt
+      middlewares:
+        - rabbit-auth
+        - rabbit-whitelist
 
   services:
 
