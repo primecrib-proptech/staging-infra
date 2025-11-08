@@ -51,7 +51,8 @@ services:
         - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
         - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.traefik-dashboard.service=api@internal"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth@file,dashboard-whitelist@file,securityHeaders@file"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth@file,dashboard-whitelist@file,securityHeaders@file"
+        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth@file,securityHeaders@file"
 
   postgres:
     image: postgis/postgis:16-3.5
@@ -127,7 +128,8 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file"
+#      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file"
+      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,securityHeaders@file"
 
 
 #  vault:
