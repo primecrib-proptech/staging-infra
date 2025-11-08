@@ -34,6 +34,7 @@ fi
 # Prefer explicit connection URL secret if provided
 if [ -f /run/secrets/vault_connection_url ]; then
   VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
+  log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
 else
   VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
 fi
