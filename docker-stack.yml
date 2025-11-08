@@ -48,16 +48,16 @@ services:
         failure_action: rollback
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
-        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
-        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
+#        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
+#        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+#        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+#        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
 
         # Additional labels for security and authentication
-        - "traefik.http.routers.traefik-dashboard.tls=true"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist,securityHeaders@file"
-        - "traefik.http.routers.traefik-dashboard.middlewares=auth@file,whitelist@file,securityHeaders@file,compression@file"
-        - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
+#        - "traefik.http.routers.traefik-dashboard.tls=true"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,ipwhitelist,securityHeaders@file"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=auth@file,whitelist@file,securityHeaders@file,compression@file"
+#        - "traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/run/secrets/dashboard_users"
 #        - "traefik.http.middlewares.ipwhitelist.ipwhitelist.sourcerange=45.130.104.193,10.0.0.0/8,127.0.0.1/32"
 
   postgres:
@@ -136,17 +136,17 @@ services:
       - "traefik.enable=true"
 
       # Route rule for RabbitMQ Management UI
-      - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
-      - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
-      - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
+#      - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
+#      - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
+#      - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
 
       # Optional redirect from HTTP to HTTPS
-      - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
-      - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
-      - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
+#      - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
+#      - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
+#      - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
 
       # RabbitMQ UI service port mapping
-      - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
+#      - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
 
       # Security and compression middlewares
       - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
