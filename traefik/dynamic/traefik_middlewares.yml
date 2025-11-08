@@ -2,11 +2,11 @@
 http:
   middlewares:
 
-    auth:
+    dashboard-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-    whitelist:
-      IPAllowList:
+    dashboard-whitelist:
+      ipAllowList:
         sourceRange:
           - "10.0.0.0/8"
           - "127.0.0.1/32"
@@ -15,7 +15,7 @@ http:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
     vault-whitelist:
-      IPAllowList:
+      ipAllowList:
         sourceRange:
           - "10.0.0.0/8"
           - "127.0.0.1/32"
@@ -24,7 +24,7 @@ http:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
     rabbit-whitelist:
-      IPAllowList:
+      ipAllowList:
         sourceRange:
           - "10.0.0.0/8"
           - "127.0.0.1/32"
@@ -72,7 +72,7 @@ http:
 
     # IP Whitelist (for dashboard)
     ipwhitelist:
-      IPAllowList:
+      ipAllowList:
         sourceRange:
           - "127.0.0.1/32"
           - "45.130.104.193" #/32"  # Your trusted IP

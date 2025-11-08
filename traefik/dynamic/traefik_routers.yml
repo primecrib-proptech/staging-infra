@@ -4,9 +4,12 @@ http:
       rule: Host(`traefik.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: traefik-dashboard-service
+      service: api@internal
       tls:
         certResolver: letsencrypt
+      middlewares:
+        - dashboard-auth
+        - dashboard-whitelist
 
     vault-dashboard:
       rule: Host(`vault.cyberstarsng.com`)
@@ -15,6 +18,9 @@ http:
       service: vault-service
       tls:
         certResolver: letsencrypt
+      middlewares:
+        - rabbit-auth
+        - rabbit-whitelist
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -25,10 +31,6 @@ http:
         certResolver: letsencrypt
 
   services:
-    traefik-dashboard-service:
-      loadBalancer:
-        servers:
-          - url: "http://traefik:8080"
 
     vault-service:
       loadBalancer:
