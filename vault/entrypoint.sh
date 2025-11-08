@@ -36,7 +36,7 @@ if [ -f /run/secrets/vault_connection_url ]; then
   VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
   log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
 else
-  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@postgres:5432/vaultdb?sslmode=disable"
 fi
 
 export PGPASSWORD="$DB_PASS"
@@ -73,9 +73,19 @@ else
 fi
 
 # Wait for Postgres (simplified)
-until PGPASSWORD="$DB_PASS" pg_isready -h infra_postgres -p 5432 -U vault_app; do
+#until PGPASSWORD="$DB_PASS" pg_isready -h postgres -p 5432 -U vault_app; do
+#  sleep 2
+#done
+
+log "Waiting for Postgres to become ready..."
+for i in $(seq 1 30); do
+  if pg_isready -h postgres -p 5432 -U vault_app >/dev/null 2>&1; then
+    log "Postgres is ready!"
+    break
+  fi
   sleep 2
 done
+
 
 # Launch Vault in background and stream logs
 log "Launching Vault with $OUT"
