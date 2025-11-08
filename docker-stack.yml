@@ -104,56 +104,14 @@ services:
       timeout: 5s
       retries: 5
 
-#  rabbitmq:
-#    image: rabbitmq:3.12-management
-#    ports:
-#      - "5672:5672"
-#    environment:
-#      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
-#    secrets:
-#      - rabbit_password
-#      - traefik_basicauth
-#    volumes:
-#      - rabbitmq_data:/var/lib/rabbitmq
-#      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-#    networks:
-#      - backend
-#    healthcheck:
-#      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#    deploy:
-#      restart_policy:
-#        condition: on-failure
-#      placement:
-#        constraints: [node.role == manager]
-#    labels:
-#      - "traefik.enable=true"
-#
-#      # Route rule for RabbitMQ Management UI
-#      - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
-#      - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
-#      - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
-#
-#      # Optional redirect from HTTP to HTTPS
-#      - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
-#      - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
-#      - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
-#
-#      # RabbitMQ UI service port mapping
-#      - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
-#
-#      # Security and compression middlewares
-#      - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
-#
-
   rabbitmq:
+    command: >
+      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
+             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
+             exec rabbitmq-server"
     image: rabbitmq:3.12-management
-    container_name: rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
     secrets:
@@ -162,14 +120,10 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    command: >
-      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
-             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
-             exec rabbitmq-server"
     networks:
       - backend
     healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -177,25 +131,26 @@ services:
       restart_policy:
         condition: on-failure
       placement:
-        constraints: [ node.role == manager ]
+        constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
 
-      # HTTPS route
+      # Route rule for RabbitMQ Management UI
       - "traefik.http.routers.rabbit-ui.rule=Host(`rabbit.cyberstarsng.com`)"
       - "traefik.http.routers.rabbit-ui.entrypoints=websecure"
       - "traefik.http.routers.rabbit-ui.tls.certresolver=letsencrypt"
 
-      # HTTP redirect to HTTPS
+      # Optional redirect from HTTP to HTTPS
       - "traefik.http.routers.rabbit-ui-http.rule=Host(`rabbit.cyberstarsng.com`)"
       - "traefik.http.routers.rabbit-ui-http.entrypoints=web"
       - "traefik.http.routers.rabbit-ui-http.middlewares=redirect-to-https@file"
 
-      # RabbitMQ UI backend service
+      # RabbitMQ UI service port mapping
       - "traefik.http.services.rabbit-ui.loadbalancer.server.port=15672"
 
-      # Security + performance middlewares
+      # Security and compression middlewares
       - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
+
 
 
 
