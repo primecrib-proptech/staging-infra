@@ -17,8 +17,6 @@ else
   exit 1
 fi
 
-export VAULT_POSTGRES_PASSWORD=$(cat /run/secrets/db_password)
-
 TEMPLATE=/vault/config/config.hcl
 OUT=/vault/config.generated.hcl
 
@@ -33,15 +31,17 @@ else
 fi
 
 # Prefer explicit connection URL secret if provided
-if [ -f /run/secrets/vault_connection_url ]; then
-  VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
-  log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
-else
-  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
-fi
+#if [ -f /run/secrets/vault_connection_url ]; then
+#  VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
+#  log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
+#else
+#  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+#fi
+
+VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
 
 export PGPASSWORD="$DB_PASS"
-export VAULT_CONNECTION_URL
+export VAULT_CONNECTION_URL="$VAULT_CONNECTION_URL"
 
 log "Using Vault DB connection: $VAULT_CONNECTION_URL"
 
