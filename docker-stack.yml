@@ -201,7 +201,6 @@ services:
       DISABLE_AUTO_UPDATE: 1
       GITHUB_OWNER: cyberstarsng
       GITHUB_REPO: proptech-core-service
-      GITHUB_PAT_FILE: /run/secrets/github_runner_token
       RUNNER_TOKEN_FILE: /tmp/runner_token
     secrets:
       - github_runner_token
@@ -216,6 +215,7 @@ services:
           REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
           echo "Writing token to file...";
           echo "${REG_TOKEN}" > /tmp/runner_token;
+          echo "TOKEN$$$$$$$$: ${REG_TOKEN}";
           echo "Starting GitHub Runner...";
           /entrypoint.sh;
         '
