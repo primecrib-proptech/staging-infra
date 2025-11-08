@@ -54,7 +54,11 @@ if command -v envsubst >/dev/null 2>&1; then
   envsubst < "$TEMPLATE" > "$OUT" || { log "ERROR: envsubst failed"; exit 1; }
 else
   log "envsubst not found, using sed fallback"
-  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
+#  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g" "$TEMPLATE" > "$OUT" || { log "ERROR: sed replacement failed"; exit 1; }
+  sed "s|@VAULT_CONNECTION_URL@|$VAULT_CONNECTION_URL|g; \
+       s|\${VAULT_CONNECTION_URL}|$VAULT_CONNECTION_URL|g; \
+       s|{{VAULT_CONNECTION_URL}}|$VAULT_CONNECTION_URL|g" \
+       "$TEMPLATE" > "$OUT"
 fi
 
 log "Generated $OUT (size=$(stat -c%s "$OUT" 2>/dev/null || echo unknown))"
