@@ -138,6 +138,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+      MINIO_DEFAULT_BUCKETS: api-bucket
     secrets:
       - minio_root_password
     volumes:
