@@ -3,8 +3,8 @@ set -e
 
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
-TEMPLATE=/vault/config/config.hcl
-OUT=/vault/config.generated.hcl
+TEMPLATE=/vault/config/config/config.hcl
+OUT=/vault/config/config.generated.hcl
 
 log "Starting Vault entrypoint..."
 
