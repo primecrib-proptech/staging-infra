@@ -102,7 +102,7 @@ services:
 
   vault:
     build: ./vault
-    image: vault-custom:1.17
+    image: hashicorp/vault:1.17
     command: [ "/bin/sh", "/vault/entrypoint.sh" ]
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
