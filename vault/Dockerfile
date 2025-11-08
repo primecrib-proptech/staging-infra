@@ -1,10 +1,8 @@
-# file: `vault/Dockerfile`
+# ./vault/Dockerfile
 FROM hashicorp/vault:1.17
+
 USER root
-# Debian/Ubuntu variant commands - keep image small
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends curl wget netcat-openbsd postgresql-client gettext-base && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 USER vault
-COPY entrypoint.sh /vault/entrypoint.sh
-RUN chmod +x /vault/entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/vault/entrypoint.sh"]

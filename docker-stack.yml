@@ -101,8 +101,8 @@ services:
       retries: 5
 
   vault:
-    image: hashicorp/vault:1.17
-    command: [ "/bin/sh", "/vault/entrypoint.sh" ]
+    build: ./vault
+    image: custom-vault:1.17
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_POSTGRES_PASSWORD_FILE: /run/secrets/db_password
