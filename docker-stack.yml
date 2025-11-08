@@ -105,10 +105,6 @@ services:
       retries: 5
 
   rabbitmq:
-    command: >
-      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
-             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
-             exec rabbitmq-server"
     image: rabbitmq:3.12-management
     ports:
       - "5672:5672"
@@ -150,7 +146,7 @@ services:
 
       # Security and compression middlewares
       - "traefik.http.routers.rabbit-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file,compression@file"
-
+#
 
 
 
