@@ -201,24 +201,25 @@ services:
       DISABLE_AUTO_UPDATE: 1
       GITHUB_OWNER: cyberstarsng
       GITHUB_REPO: proptech-core-service
-      RUNNER_TOKEN_FILE: /tmp/runner_token
+      RUNNER_TOKEN_FILE: /run/secret/github-pat
     secrets:
       - github_runner_token
+      - github-pat
     volumes:
       - github-runner-data:/runner
-    entrypoint: >
-      sh -c '
-          set -e;
-          echo "Fetching registration token...";
-          PAT=`cat /run/secrets/github_runner_token`;
-          URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
-          REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
-          echo "Writing token to file...";
-          echo "${REG_TOKEN}" > /tmp/runner_token;
-          echo "TOKEN------------: ${REG_TOKEN}";
-          echo "Starting GitHub Runner...";
-          /entrypoint.sh;
-        '
+#    entrypoint: >
+#      sh -c '
+#          set -e;
+#          echo "Fetching registration token...";
+#          PAT=`cat /run/secrets/github_runner_token`;
+#          URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
+#          REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
+#          echo "Writing token to file...";
+#          echo "${REG_TOKEN}" > /tmp/runner_token;
+#          echo "TOKEN------------: ${REG_TOKEN}";
+#          echo "Starting GitHub Runner...";
+#          /entrypoint.sh;
+#        '
     deploy:
       mode: replicated
       replicas: 1
