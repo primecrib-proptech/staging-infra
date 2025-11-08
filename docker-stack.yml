@@ -66,14 +66,13 @@ services:
     environment:
       POSTGRES_DB_FILE: /run/secrets/db_name
       POSTGRES_USER_FILE: /run/secrets/db_user
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
     ports:
       - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
-#      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./postgres/init.sql.template:/docker-entrypoint-initdb.d/init.sql.template:ro
       - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
     networks:
@@ -82,6 +81,7 @@ services:
       - db_name
       - db_user
       - db_password
+      - postgres_password
     deploy:
       replicas: 1
       restart_policy:
@@ -275,6 +275,8 @@ secrets:
   db_user:
     external: true
   db_password:
+    external: true
+  postgres_password:
     external: true
   vault_root_token:
     external: true
