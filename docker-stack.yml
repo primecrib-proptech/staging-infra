@@ -173,7 +173,7 @@ services:
     networks:
       - backend
     healthcheck:
-      test: [ "CMD", "sh", "-c", "redis-cli -a $(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5
