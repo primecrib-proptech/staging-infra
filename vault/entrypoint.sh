@@ -23,22 +23,20 @@ OUT=/vault/config.generated.hcl
 log "Starting Vault entrypoint..."
 
 # Load secrets
-if [ -f /run/secrets/db_password ]; then
-  DB_PASS=$(cat /run/secrets/db_password)
+if [ -f /run/secrets/postgres_password ]; then
+  DB_PASS=$(cat /run/secrets/postgres_password)
 else
   log "ERROR: /run/secrets/db_password not found"
   exit 1
 fi
 
 # Prefer explicit connection URL secret if provided
-#if [ -f /run/secrets/vault_connection_url ]; then
-#  VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
-#  log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
-#else
-#  VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
-#fi
-
-VAULT_CONNECTION_URL="postgres://vault_app:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+if [ -f /run/secrets/vault_connection_url ]; then
+  VAULT_CONNECTION_URL=$(cat /run/secrets/vault_connection_url)
+  log "Using Vault DB connection URL from secret $VAULT_CONNECTION_URL"
+else
+  VAULT_CONNECTION_URL="postgres://postgres:${DB_PASS}@infra_postgres:5432/vaultdb?sslmode=disable"
+fi
 
 export PGPASSWORD="$DB_PASS"
 export VAULT_CONNECTION_URL="$VAULT_CONNECTION_URL"
