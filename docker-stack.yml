@@ -189,6 +189,54 @@ services:
       placement:
         constraints: [node.role == manager]
 
+  github-runner:
+    image: myoung34/github-runner:latest
+    environment:
+      REPO_URL: https://github.com/cyberstarsng/proptech-core-service.git
+      RUNNER_NAME: api-runner
+      RUNNER_WORKDIR: /tmp/github-runner
+      RUNNER_SCOPE: repo
+      LABELS: docker,swarm,vps
+      EPHEMERAL: 1
+      DISABLE_AUTO_UPDATE: 1
+      ACCESS_TOKEN_FILE: /run/secrets/github_runner_token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/docker:/etc/docker:ro
+      - github-runner-data:/runner
+    secrets:
+      - github_runner_token
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - ci-network
+      - backend
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "ps aux | grep -v grep | grep Runner.Listener" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup --interval 3600
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+
 #  vault:
 #    image: hashicorp/vault:1.17
 #    command: [ "/bin/sh", "/vault/entrypoint.sh" ]
