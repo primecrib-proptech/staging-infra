@@ -258,7 +258,7 @@ services:
     volumes:
       - ./vault/config.hcl:/vault/config/config.hcl:ro
       - vault_logs:/vault/logs
-      - vault_data:/vault/file
+      - vault_data:/vault/data
     cap_add:
       - IPC_LOCK
     networks:
