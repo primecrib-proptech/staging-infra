@@ -9,7 +9,6 @@ http:
         certResolver: letsencrypt
       middlewares:
         - dashboard-auth
-#        - dashboard-whitelist
 
     vault-dashboard:
       rule: Host(`vault.cyberstarsng.com`)
@@ -18,8 +17,6 @@ http:
       service: vault-service
       tls:
         certResolver: letsencrypt
-      middlewares:
-        - vault-auth
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -28,8 +25,6 @@ http:
       service: rabbit-service
       tls:
         certResolver: letsencrypt
-      middlewares:
-        - rabbit-auth
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -38,8 +33,6 @@ http:
       service: minio-service
       tls:
         certResolver: letsencrypt
-#      middlewares:
-#        - minio-auth
 
   services:
 

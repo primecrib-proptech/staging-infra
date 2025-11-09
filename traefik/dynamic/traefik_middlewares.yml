@@ -5,21 +5,6 @@ http:
     dashboard-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
-    dashboard-whitelist:
-#      ipAllowList:
-#        sourceRange:
-#          - "10.0.0.0/8"
-#          - "127.0.0.1/32"
-#          - "45.130.104.193"
-    vault-auth:
-      basicAuth:
-        usersFile: /run/secrets/traefik_basicauth
-    rabbit-auth:
-      basicAuth:
-        usersFile: /run/secrets/traefik_basicauth
-    minio-auth:
-      basicAuth:
-        usersFile: /run/secrets/traefik_basicauth
     # Redirect HTTP → HTTPS
     redirect-to-https:
       redirectScheme:
