@@ -299,6 +299,7 @@ services:
 configs:
   redis_conf:
     file: ./redis/redis.conf
+
 volumes:
   postgres_data:
     driver: local
@@ -394,7 +395,6 @@ volumes:
 networks:
   backend:
     driver: overlay
-    internal: true
   traefik-public:
     driver: overlay
     external: true
