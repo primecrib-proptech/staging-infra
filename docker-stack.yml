@@ -253,6 +253,8 @@ services:
   vault:
     image: hashicorp/vault:1.17
     command: ["server", "-config=/vault/config/config.hcl"]
+    ports:
+      - "8200:8200"
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
     volumes:
@@ -424,8 +426,6 @@ secrets:
   github_runner_token:
     external: true
   grafana_root_password:
-    external: true
-  dashboard_users:
     external: true
   traefik_basicauth:
     external: true
