@@ -99,11 +99,12 @@ services:
 
   vault:
     image: hashicorp/vault:1.21
-    command: ["server", "-config=/vault/config/config.hcl"]
+    command: ["server"]
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_LOCAL_CONFIG_FILE: ./vault/config.hcl
     volumes:
-      - ./vault/config.hcl:/vault/config/config.hcl:ro
+#      - ./vault/config.hcl:/vault/config/config.hcl:ro
       - vault_logs:/vault/logs
       - vault_data:/vault/data
     cap_add:

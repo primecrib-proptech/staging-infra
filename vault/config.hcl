@@ -9,6 +9,7 @@ listener "tcp" {
   tls_disable = 1
 }
 
-storage "file" {
+storage "raft" {
   path    = "/vault/data"
+  node_id = "vault"
 }
