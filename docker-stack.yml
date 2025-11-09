@@ -97,44 +97,6 @@ services:
       timeout: 5s
       retries: 5
 
-  vault:
-    image: hashicorp/vault:1.21
-    command: ["server", "-config=/vault/file/config.hcl"]
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8200
-    volumes:
-      - ./vault/config.hcl:/vault/file/config.hcl:ro
-      - vault_logs:/vault/logs
-      - vault_data:/vault/file
-    cap_add:
-      - IPC_LOCK
-    networks:
-      - traefik-public
-      - backend
-    healthcheck:
-      test: [ "CMD", "vault", "status" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-      placement:
-        constraints:
-          - node.role == manager
-    labels:
-      - "traefik.enable=true"
-
   rabbitmq:
     image: rabbitmq:4.2.0-management
     command: >
@@ -169,6 +131,42 @@ services:
 #      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file"
       - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,securityHeaders@file"
 
+  infisical:
+    image: infisical/self-hosted:latest
+    environment:
+      DATABASE_URL: /run/secrets/db_connection
+      PORT: 8082
+      JWT_SECRET: /run/secrets/jwt_secret_key
+      COOKIE_SECRET: /run/secrets/jwt_secret_key
+    ports:
+      - target: 8082
+        published: 8082
+        protocol: tcp
+        mode: host
+    volumes:
+      - infisical-data:/app/data
+    secrets:
+      - jwt_secret_key
+      - db_connection
+    networks:
+      - backend
+      - traefik-public
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      placement:
+        constraints:
+          - node.role == manager
+    labels:
+      - "traefik.enable=true"
 
   minio:
     image: minio/minio:latest
@@ -386,6 +384,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/redis-data
+
+  infisical_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/infisical-data
 
 networks:
   backend:
