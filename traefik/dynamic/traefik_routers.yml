@@ -36,11 +36,6 @@ http:
 
   services:
 
-    vault-service:
-      loadBalancer:
-        servers:
-          - url: "http://infisical:8200"
-
     rabbit-service:
       loadBalancer:
         servers:

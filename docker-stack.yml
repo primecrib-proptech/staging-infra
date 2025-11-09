@@ -131,43 +131,6 @@ services:
 #      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file"
       - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,securityHeaders@file"
 
-  infisical:
-    image: infisical/self-hosted:latest
-    environment:
-      DATABASE_URL: /run/secrets/db_connection
-      PORT: 8082
-      JWT_SECRET: /run/secrets/jwt_secret_key
-      COOKIE_SECRET: /run/secrets/jwt_secret_key
-    ports:
-      - target: 8082
-        published: 8082
-        protocol: tcp
-        mode: host
-    volumes:
-      - infisical_data:/app/data
-    secrets:
-      - jwt_secret_key
-      - db_connection
-    networks:
-      - backend
-      - traefik-public
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-      placement:
-        constraints:
-          - node.role == manager
-    labels:
-      - "traefik.enable=true"
-
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -225,67 +188,6 @@ services:
       placement:
         constraints: [node.role == manager]
 
-#  github-runner:
-#    image: myoung34/github-runner:latest
-#    environment:
-#      REPO_URL: https://github.com/cyberstarsng/proptech-core-service.git
-#      RUNNER_NAME: api-runner
-#      RUNNER_WORKDIR: /tmp/github-runner
-#      RUNNER_SCOPE: repo
-#      LABELS: docker,swarm,vps
-#      EPHEMERAL: 1
-#      DISABLE_AUTO_UPDATE: 1
-#      GITHUB_OWNER: cyberstarsng
-#      GITHUB_REPO: proptech-core-service
-#      RUNNER_TOKEN_FILE: /run/secret/github-pat
-#    secrets:
-#      - github_runner_token
-#      - github-pat
-#    volumes:
-#      - github-runner-data:/runner
-#    entrypoint: >
-#      sh -c '
-#          set -e;
-#          echo "Fetching registration token...";
-#          PAT=`cat /run/secrets/github_runner_token`;
-#          URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
-#          REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
-#          echo "Writing token to file...";
-#          echo "${REG_TOKEN}" > /tmp/runner_token;
-#          echo "TOKEN------------: ${REG_TOKEN}";
-#          echo "Starting GitHub Runner...";
-#          /entrypoint.sh;
-#        '
-#    deploy:
-#      mode: replicated
-#      replicas: 1
-#      resources:
-#        limits:
-#          cpus: '1.0'
-#          memory: 1G
-#    networks:
-#      - ci-network
-#      - backend
-#    healthcheck:
-#      test: [ "CMD", "bash", "-c", "ps aux | grep -v grep | grep Runner.Listener" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
-#
-#  watchtower:
-#    image: containrrr/watchtower
-#    command: --cleanup --interval 3600 --label-enable
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-#    environment:
-#      WATCHTOWER_CLEANUP: "true"
-#    labels:
-#      - "com.centurylinklabs.watchtower.enable=true"
-#    deploy:
-#      restart_policy:
-#        condition: on-failure
-
-
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
@@ -300,20 +202,6 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/postgres-data
-
-  vault_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/vault-data
-
-  vault_logs:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/vault-logs
 
   minio_data:
     driver: local
@@ -385,13 +273,6 @@ volumes:
       o: bind
       device: /opt/containers/storages/redis-data
 
-  infisical_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/infisical-data
-
 networks:
   backend:
     driver: overlay
@@ -433,8 +314,4 @@ secrets:
   traefik_basicauth:
     external: true
   redis_root_password:
-    external: true
-  github-pat:
-    external: true
-  db_connection:
     external: true
