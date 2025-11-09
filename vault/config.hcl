@@ -12,15 +12,4 @@ listener "tcp" {
 storage "raft" {
   path    = "/vault/data"
   node_id = "vault"
-
-  # For multi-node HA setup, each node can include one or more retry_join blocks
-  # retry_join {
-  #   leader_api_addr = "http://vault-1:8200"
-  # }
-  # retry_join {
-  #   leader_api_addr = "http://vault-2:8200"
-  # }
-  # retry_join {
-  #   leader_api_addr = "http://vault-3:8200"
-  # }
 }

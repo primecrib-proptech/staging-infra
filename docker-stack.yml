@@ -100,8 +100,8 @@ services:
   vault:
     image: hashicorp/vault:1.17
     command: ["server", "-config=/vault/config/config.hcl"]
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8200
+#    environment:
+#      VAULT_ADDR: http://0.0.0.0:8200
     volumes:
       - ./vault/config.hcl:/vault/config/config.hcl:ro
       - vault_logs:/vault/logs
