@@ -100,6 +100,11 @@ services:
   vault:
     image: hashicorp/vault:1.21
     command: ["server", "-config=/vault/config/config.hcl"]
+    ports:
+      - target: 8200
+        published: 18200
+        protocol: tcp
+        mode: host
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
     volumes:
