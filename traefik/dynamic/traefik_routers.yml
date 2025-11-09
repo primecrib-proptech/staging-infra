@@ -39,7 +39,7 @@ http:
     vault-service:
       loadBalancer:
         servers:
-          - url: "http://vault:18200"
+          - url: "http://vault:8200"
 
     rabbit-service:
       loadBalancer:
