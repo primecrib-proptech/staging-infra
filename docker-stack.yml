@@ -122,6 +122,13 @@ services:
       restart_policy:
         condition: on-failure
         delay: 10s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
       placement:
         constraints:
           - node.role == manager
