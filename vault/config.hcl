@@ -13,8 +13,3 @@ storage "raft" {
   path    = "/vault/data"
   node_id = "vault"
 }
-
-seal "transit" {
-  type       = "file"
-  key_path   = "/vault/data/autounseal.key"
-}
