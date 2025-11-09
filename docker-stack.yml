@@ -97,6 +97,46 @@ services:
       timeout: 5s
       retries: 5
 
+  vault:
+    image: hashicorp/vault:1.17
+    command: ["server", "-config=/vault/config/config.hcl"]
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+    volumes:
+      - ./vault/config.hcl:/vault/config/config.hcl:ro
+      - vault_logs:/vault/logs
+      - vault_data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - traefik-public
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+
   rabbitmq:
     image: rabbitmq:4.2.0-management
     command: >
@@ -189,106 +229,65 @@ services:
       placement:
         constraints: [node.role == manager]
 
-  github-runner:
-    image: myoung34/github-runner:latest
-    environment:
-      REPO_URL: https://github.com/cyberstarsng/proptech-core-service.git
-      RUNNER_NAME: api-runner
-      RUNNER_WORKDIR: /tmp/github-runner
-      RUNNER_SCOPE: repo
-      LABELS: docker,swarm,vps
-      EPHEMERAL: 1
-      DISABLE_AUTO_UPDATE: 1
-      GITHUB_OWNER: cyberstarsng
-      GITHUB_REPO: proptech-core-service
-      RUNNER_TOKEN_FILE: /run/secret/github-pat
-    secrets:
-      - github_runner_token
-      - github-pat
-    volumes:
-      - github-runner-data:/runner
-    entrypoint: >
-      sh -c '
-          set -e;
-          echo "Fetching registration token...";
-          PAT=`cat /run/secrets/github_runner_token`;
-          URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
-          REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
-          echo "Writing token to file...";
-          echo "${REG_TOKEN}" > /tmp/runner_token;
-          echo "TOKEN------------: ${REG_TOKEN}";
-          echo "Starting GitHub Runner...";
-          /entrypoint.sh;
-        '
-    deploy:
-      mode: replicated
-      replicas: 1
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-    networks:
-      - ci-network
-      - backend
-    healthcheck:
-      test: [ "CMD", "bash", "-c", "ps aux | grep -v grep | grep Runner.Listener" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  watchtower:
-    image: containrrr/watchtower
-    command: --cleanup --interval 3600 --label-enable
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      WATCHTOWER_CLEANUP: "true"
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-    deploy:
-      restart_policy:
-        condition: on-failure
-
-
-  vault:
-    image: hashicorp/vault:1.17
-    command: ["server", "-config=/vault/config/config.hcl"]
-    ports:
-      - "8200:8200"
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8200
-    volumes:
-      - ./vault/config.hcl:/vault/config/config.hcl:ro
-      - vault_logs:/vault/logs
-      - vault_data:/vault/data
-    cap_add:
-      - IPC_LOCK
-    networks:
-      - traefik-public
-      - backend
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-    healthcheck:
-      test: ["CMD", "vault", "status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    labels:
-      - "traefik.enable=true"
+#  github-runner:
+#    image: myoung34/github-runner:latest
+#    environment:
+#      REPO_URL: https://github.com/cyberstarsng/proptech-core-service.git
+#      RUNNER_NAME: api-runner
+#      RUNNER_WORKDIR: /tmp/github-runner
+#      RUNNER_SCOPE: repo
+#      LABELS: docker,swarm,vps
+#      EPHEMERAL: 1
+#      DISABLE_AUTO_UPDATE: 1
+#      GITHUB_OWNER: cyberstarsng
+#      GITHUB_REPO: proptech-core-service
+#      RUNNER_TOKEN_FILE: /run/secret/github-pat
+#    secrets:
+#      - github_runner_token
+#      - github-pat
+#    volumes:
+#      - github-runner-data:/runner
+#    entrypoint: >
+#      sh -c '
+#          set -e;
+#          echo "Fetching registration token...";
+#          PAT=`cat /run/secrets/github_runner_token`;
+#          URL="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners/registration-token";
+#          REG_TOKEN=`curl -s -X POST -H "Authorization: token ${PAT}" "${URL}" | jq -r .token`;
+#          echo "Writing token to file...";
+#          echo "${REG_TOKEN}" > /tmp/runner_token;
+#          echo "TOKEN------------: ${REG_TOKEN}";
+#          echo "Starting GitHub Runner...";
+#          /entrypoint.sh;
+#        '
+#    deploy:
+#      mode: replicated
+#      replicas: 1
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 1G
+#    networks:
+#      - ci-network
+#      - backend
+#    healthcheck:
+#      test: [ "CMD", "bash", "-c", "ps aux | grep -v grep | grep Runner.Listener" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#  watchtower:
+#    image: containrrr/watchtower
+#    command: --cleanup --interval 3600 --label-enable
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    environment:
+#      WATCHTOWER_CLEANUP: "true"
+#    labels:
+#      - "com.centurylinklabs.watchtower.enable=true"
+#    deploy:
+#      restart_policy:
+#        condition: on-failure
 
 
 # ────────────────────────────────
