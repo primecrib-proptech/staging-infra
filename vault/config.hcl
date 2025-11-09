@@ -9,12 +9,7 @@ listener "tcp" {
   tls_disable = 1
 }
 
-storage "postgresql" {
-  connection_url = "postgres://vault_app:pjz22Q38atgkgij98x5cat79qwgn0xl@infra_postgres:5432/vaultdb?sslmode=disable"
+storage "raft" {
+  path    = "/vault/data"
+  node_id = "vault"
 }
-
-
-# storage "raft" {
-#   path    = "/vault/data"
-#   node_id = "vault"
-# }
