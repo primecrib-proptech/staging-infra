@@ -144,7 +144,7 @@ services:
         protocol: tcp
         mode: host
     volumes:
-      - infisical-data:/app/data
+      - infisical_data:/app/data
     secrets:
       - jwt_secret_key
       - db_connection
