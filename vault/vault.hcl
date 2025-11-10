@@ -27,7 +27,7 @@ listener "tcp" {
 # Storage Configuration (Raft)
 # ---------------------------
 storage "raft" {
-  path = "/vault/data"
+  path = "/vault/file"
   node_id = "vault"
 }
 
