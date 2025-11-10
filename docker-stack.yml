@@ -189,11 +189,14 @@ services:
         constraints: [node.role == manager]
 
   vault:
-    image: hashicorp/vault:latest # Use a specific, stable version in production
-    command: ["server", "-config=/vault/config/vault.hcl"]
+    image: hashicorp/vault:1.21
+    entrypoint:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
     ports:
-      - "8200:8200" # Vault API
-      - "8201:8201" # Raft cluster port
+      - "8200:8200"
+      - "8201:8201"
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
