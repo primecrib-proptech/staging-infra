@@ -206,7 +206,8 @@ services:
         soft: 65535
         hard: 65535
     networks:
-      - vault_net
+      - backend
+      - traefik-public
     healthcheck:
       test: ["CMD", "vault", "status", "-tls-skip-verify"]
       interval: 10s
@@ -217,6 +218,8 @@ services:
         limits:
           cpus: '1'
           memory: 1G
+    labels:
+      - "traefik.enable=true"
 
   vault-2:
     image: vaultdockercluster:1.20
@@ -236,7 +239,8 @@ services:
         soft: 65535
         hard: 65535
     networks:
-      - vault_net
+      - backend
+      - traefik-public
     healthcheck:
       test: ["CMD", "vault", "status", "-tls-skip-verify"]
       interval: 10s
@@ -247,6 +251,8 @@ services:
         limits:
           cpus: '1'
           memory: 1G
+    labels:
+      - "traefik.enable=true"
 
   vault-3:
     image: vaultdockercluster:1.20
@@ -266,7 +272,8 @@ services:
         soft: 65535
         hard: 65535
     networks:
-      - vault_net
+      - backend
+      - traefik-public
     healthcheck:
       test: ["CMD", "vault", "status", "-tls-skip-verify"]
       interval: 10s
@@ -277,6 +284,8 @@ services:
         limits:
           cpus: '1'
           memory: 1G
+    labels:
+      - "traefik.enable=true"
 
   vault-unsealer:
     image: vaultdockercluster:1.20
