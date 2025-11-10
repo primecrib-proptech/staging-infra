@@ -190,7 +190,7 @@ services:
 
   vault:
     image: hashicorp/vault:latest # Use a specific, stable version in production
-    container_name: vault
+    command: ["server", "-config=/vault/file/config.hcl"]
     ports:
       - "8200:8200" # Vault API
       - "8201:8201" # Raft cluster port
@@ -203,6 +203,8 @@ services:
     networks:
       - traefik-public
       - backend
+    cap_add:
+      - IPC_LOCK
     healthcheck:
       test: [ "CMD", "vault", "status" ]
       interval: 30s
