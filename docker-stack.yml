@@ -194,15 +194,11 @@ services:
       - vault
       - server
       - -config=/vault/config/vault.hcl
-    ports:
-      - "8200:8200"
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
       - vault_data:/vault/data
       - vault_logs:/vault/logs
-    environment:
-      VAULT_ADDR: "http://0.0.0.0:8200"
     networks:
       - traefik-public
       - backend

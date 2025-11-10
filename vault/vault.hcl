@@ -9,14 +9,14 @@ disable_mlock = true
 # API Control
 # ---------------------------
 api_addr = "http://infra_vault:8200" # Use HTTPS
-# cluster_addr = "http://infra_vault:8201" # Use HTTPS
+cluster_addr = "http://infra_vault:8201" # Use HTTPS
 
 # ---------------------------
 # Listener Configuration
 # ---------------------------
 listener "tcp" {
   address       = "0.0.0.0:8200"
-  # cluster_address = "0.0.0.0:8201"
+  cluster_address = "0.0.0.0:8201"
 
   tls_disable = 1 # i - disable TLS and 0 - enable TLS
   tls_cert_file = "/vault/certs/vault.crt"
