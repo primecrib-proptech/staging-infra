@@ -23,6 +23,7 @@ cluster_addr = "https://0.0.0.0:8201" # Use HTTPS
 
 # Other essential production settings:
 disable_mlock = "false" # Keep mlock enabled for security
+
 telemetry {
   prometheus_retention_time = "30s"
   disable_hostname = "false"

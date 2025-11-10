@@ -188,134 +188,44 @@ services:
       placement:
         constraints: [node.role == manager]
 
-  vault-1:
-    build:
-      context: .
-      dockerfile: Dockerfile.vault
-    image: vaultdockercluster:1.20
+  vault:
+    image: hashicorp/vault:latest # Use a specific, stable version in production
+    container_name: vault
+    ports:
+      - "8200:8200" # Vault API
+      - "8201:8201" # Raft cluster port
     volumes:
-      - ./vault/vault-1/config:/vault/config
-      - ./vault-1/data:/vault/data
-    cap_add:
-      - IPC_LOCK
-    entrypoint:
-      - vault
-      - server
-      - -config=/vault/config/vault.hcl
-    ulimits:
-      memlock: -1
-      nofile:
-        soft: 65535
-        hard: 65535
+      - vault_data:/vault/data # Persistent storage for Raft snapshots and data
+      - ./vault/vault.hcl:/vault/file/vault.hcl:ro # Mount your Vault configuration
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_SKIP_MIGRATION: "true" # Skip migration if starting fresh
     networks:
-      - backend
       - traefik-public
+      - backend
     healthcheck:
-      test: ["CMD", "vault", "status", "-tls-skip-verify"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: [ "CMD", "vault", "status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
       resources:
         limits:
           cpus: '1'
-          memory: 1G
-    labels:
-      - "traefik.enable=true"
-
-  vault-2:
-    build:
-      context: .
-      dockerfile: Dockerfile.vault
-    image: vaultdockercluster:1.20
-    volumes:
-      - ./vault/vault-2/config:/vault/config
-      - ./vault-2/data:/vault/data
-    cap_add:
-      - IPC_LOCK
-    entrypoint:
-      - vault
-      - server
-      - -config=/vault/config/vault.hcl
-    ulimits:
-      memlock: -1
-      nofile:
-        soft: 65535
-        hard: 65535
-    networks:
-      - backend
-      - traefik-public
-    healthcheck:
-      test: ["CMD", "vault", "status", "-tls-skip-verify"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-    labels:
-      - "traefik.enable=true"
-
-  vault-3:
-    build:
-      context: .
-      dockerfile: Dockerfile.vault
-    image: vaultdockercluster:1.20
-    volumes:
-      - ./vault/vault-3/config:/vault/config
-      - ./vault-3/data:/vault/data
-    cap_add:
-      - IPC_LOCK
-    entrypoint:
-      - vault
-      - server
-      - -config=/vault/config/vault.hcl
-    ulimits:
-      memlock: -1
-      nofile:
-        soft: 65535
-        hard: 65535
-    networks:
-      - backend
-      - traefik-public
-    healthcheck:
-      test: ["CMD", "vault", "status", "-tls-skip-verify"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-    labels:
-      - "traefik.enable=true"
-
-  vault-unsealer:
-    build:
-      context: .
-      dockerfile: Dockerfile.vault
-    image: vaultdockercluster:1.20
-    volumes:
-      - ./vault/auto-unseal-monitor.sh:/usr/local/bin/auto-unseal-monitor.sh:ro
-      - ./vault/vault-1/config:/vault/config:ro
-      - ./vault/vault-2/config:/vault/config-2:ro
-      - ./vault/vault-3/config:/vault/config-3:ro
-    entrypoint: sh /usr/local/bin/auto-unseal-monitor.sh
-    depends_on:
-      - vault-1
-      - vault-2
-      - vault-3
-    networks:
-      - backend
-      - traefik-public
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
           memory: 256M
+      placement:
+        constraints:
+          - node.role == manager
+    labels:
+      - "traefik.enable=true"
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
@@ -407,20 +317,6 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/vault-data
-
-  vault_data2:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/vault-data2
-
-  vault_data3:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/vault-data3
 
 networks:
   backend:
