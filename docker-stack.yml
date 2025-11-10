@@ -195,7 +195,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-1/config:/vault/config
-      - ./vault/vault-1/data:/vault/data
+      - vault_data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -230,7 +230,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-2/config:/vault/config
-      - ./vault/vault-2/data:/vault/data
+      - vault_data2:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -265,7 +265,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-3/config:/vault/config
-      - ./vault/vault-3/data:/vault/data
+      - vault_data3:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -407,6 +407,20 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/vault-data
+
+  vault_data2:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-data2
+
+  vault_data3:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-data3
 
 networks:
   backend:
