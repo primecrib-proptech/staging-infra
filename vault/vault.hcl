@@ -8,8 +8,8 @@ disable_mlock = true
 # ---------------------------
 # API Control
 # ---------------------------
-api_addr = "https://vault:8200" # Use HTTPS
-cluster_addr = "https://vault:8201" # Use HTTPS
+api_addr = "https://infra_vault:8200" # Use HTTPS
+cluster_addr = "https://infra_vault:8201" # Use HTTPS
 
 # ---------------------------
 # Listener Configuration
@@ -32,7 +32,7 @@ storage "raft" {
   node_id = "vault"
 
   retry_join {
-    leader_api_addr = "https://vault:8200"
+    leader_api_addr = "https://infra_vault:8200"
   }
 }
 
