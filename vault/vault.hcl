@@ -40,6 +40,6 @@ storage "raft" {
 # Telemetry (optional metrics)
 # ---------------------------
 telemetry {
-  prometheus_retention_time = "30s"
-  disable_hostname = "false"
+  prometheus_retention_time = "24h"
+  disable_hostname = false
 }
