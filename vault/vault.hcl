@@ -29,9 +29,6 @@ listener "tcp" {
 storage "raft" {
   path = "/vault/file"
   node_id = "vault" # Unique ID for this node
-  retry_join {
-    leader_api_addr = "http://vault:8200" # Use HTTPS with TLS
-  }
 }
 
 # ---------------------------
