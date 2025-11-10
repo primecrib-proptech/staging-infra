@@ -49,5 +49,4 @@ http:
     vault-service:
       loadBalancer:
         servers:
-          - url: "https://vault:8200"
-          - scheme: https
+          - url: "http://vault:8200"
