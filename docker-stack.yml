@@ -189,6 +189,9 @@ services:
         constraints: [node.role == manager]
 
   vault-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     restart: unless-stopped
     volumes:
@@ -222,6 +225,9 @@ services:
       - "traefik.enable=true"
 
   vault-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     restart: unless-stopped
     volumes:
@@ -255,6 +261,9 @@ services:
       - "traefik.enable=true"
 
   vault-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     restart: unless-stopped
     volumes:
@@ -288,6 +297,9 @@ services:
       - "traefik.enable=true"
 
   vault-unsealer:
+    build:
+      context: .
+      dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     restart: unless-stopped
     volumes:
