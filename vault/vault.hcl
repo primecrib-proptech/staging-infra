@@ -8,8 +8,8 @@ disable_mlock = true
 # ---------------------------
 # API Control
 # ---------------------------
-api_addr = "http://infra_vault:8200" # Use HTTPS
-cluster_addr = "http://infra_vault:8201" # Use HTTPS
+api_addr = "http://127.0.0.1:8200" # Use HTTPS
+cluster_addr = "http://127.0.0.1:8201" # Use HTTPS
 
 # ---------------------------
 # Listener Configuration
