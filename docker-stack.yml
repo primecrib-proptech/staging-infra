@@ -195,8 +195,10 @@ services:
       - "8200:8200" # Vault API
       - "8201:8201" # Raft cluster port
     volumes:
-      - vault_data:/vault/file # Persistent storage for Raft snapshots and data
-      - ./vault:/vault/file
+      - ./vault/config.hcl:/vault/file/config.hcl:ro
+      - ./vault/rootCA.crt:/vault/file/rootCA.crt:ro
+      - ./vault/vault.crt:/vault/file/vault.crt:ro
+      - ./vault/vault.key:/vault/file/vault.key:ro
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
       VAULT_SKIP_MIGRATION: "true" # Skip migration if starting fresh
