@@ -195,7 +195,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-1/config:/vault/config
-      - ./vault/vault-1/data:/vault/file
+      - ./vault/vault-1/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -230,7 +230,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-2/config:/vault/config
-      - ./vault/vault-2/data:/vault/file
+      - ./vault/vault-2/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -265,7 +265,7 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/vault-3/config:/vault/config
-      - ./vault/vault-3/data:/vault/file
+      - ./vault/vault-3/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
