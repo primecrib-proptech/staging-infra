@@ -194,14 +194,14 @@ services:
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     volumes:
-      - ./vault/vault-1/config:/vault/file
-      - vault_data:/vault/data
+      - ./vault/vault-1/config:/vault/config
+      - ./vault-1/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
       - vault
       - server
-      - -config=/vault/file/vault.hcl
+      - -config=/vault/config/vault.hcl
     ulimits:
       memlock: -1
       nofile:
@@ -229,14 +229,14 @@ services:
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     volumes:
-      - ./vault/vault-2/config:/vault/file
-      - vault_data2:/vault/data
+      - ./vault/vault-2/config:/vault/config
+      - ./vault-2/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
       - vault
       - server
-      - -config=/vault/file/vault.hcl
+      - -config=/vault/config/vault.hcl
     ulimits:
       memlock: -1
       nofile:
@@ -264,14 +264,14 @@ services:
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
     volumes:
-      - ./vault/vault-3/config:/vault/file
-      - vault_data3:/vault/data
+      - ./vault/vault-3/config:/vault/config
+      - ./vault-3/data:/vault/data
     cap_add:
       - IPC_LOCK
     entrypoint:
       - vault
       - server
-      - -config=/vault/file/vault.hcl
+      - -config=/vault/config/vault.hcl
     ulimits:
       memlock: -1
       nofile:
@@ -300,9 +300,9 @@ services:
     image: vaultdockercluster:1.20
     volumes:
       - ./vault/auto-unseal-monitor.sh:/usr/local/bin/auto-unseal-monitor.sh:ro
-      - ./vault/vault-1/config:/vault/file:ro
-      - ./vault/vault-2/config:/vault/file-2:ro
-      - ./vault/vault-3/config:/vault/file-3:ro
+      - ./vault/vault-1/config:/vault/config:ro
+      - ./vault/vault-2/config:/vault/config-2:ro
+      - ./vault/vault-3/config:/vault/config-3:ro
     entrypoint: sh /usr/local/bin/auto-unseal-monitor.sh
     depends_on:
       - vault-1
