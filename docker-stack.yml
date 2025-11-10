@@ -188,6 +188,116 @@ services:
       placement:
         constraints: [node.role == manager]
 
+  vault-1:
+    image: vaultdockercluster:1.20
+    restart: unless-stopped
+    volumes:
+      - ./vault/vault-1/config:/vault/config
+      - ./vault/vault-1/data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    entrypoint:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
+    ulimits:
+      memlock: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - vault_net
+    healthcheck:
+      test: ["CMD", "vault", "status", "-tls-skip-verify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  vault-2:
+    image: vaultdockercluster:1.20
+    restart: unless-stopped
+    volumes:
+      - ./vault/vault-2/config:/vault/config
+      - ./vault/vault-2/data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    entrypoint:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
+    ulimits:
+      memlock: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - vault_net
+    healthcheck:
+      test: ["CMD", "vault", "status", "-tls-skip-verify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  vault-3:
+    image: vaultdockercluster:1.20
+    restart: unless-stopped
+    volumes:
+      - ./vault/vault-3/config:/vault/config
+      - ./vault/vault-3/data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    entrypoint:
+      - vault
+      - server
+      - -config=/vault/config/vault.hcl
+    ulimits:
+      memlock: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - vault_net
+    healthcheck:
+      test: ["CMD", "vault", "status", "-tls-skip-verify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  vault-unsealer:
+    image: vaultdockercluster:1.20
+    restart: unless-stopped
+    volumes:
+      - ./vault/auto-unseal-monitor.sh:/usr/local/bin/auto-unseal-monitor.sh:ro
+      - ./vault/vault-1/config:/vault/config:ro
+      - ./vault/vault-2/config:/vault/config-2:ro
+      - ./vault/vault-3/config:/vault/config-3:ro
+    entrypoint: sh /usr/local/bin/auto-unseal-monitor.sh
+    depends_on:
+      - vault-1
+      - vault-2
+      - vault-3
+    networks:
+      - vault_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
@@ -272,6 +382,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/redis-data
+
+  vault_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-data
 
 networks:
   backend:
