@@ -195,7 +195,7 @@ services:
       - "8200:8200" # Vault API
       - "8201:8201" # Raft cluster port
     volumes:
-      - ./vault/config.hcl:/vault/file/config.hcl:ro
+      - ./vault/vault.hcl:/vault/file/vault.hcl:ro
       - ./vault/rootCA.crt:/vault/file/rootCA.crt:ro
       - ./vault/vault.crt:/vault/file/vault.crt:ro
       - ./vault/vault.key:/vault/file/vault.key:ro
