@@ -191,6 +191,9 @@ services:
   vault:
     image: hashicorp/vault:latest # Use a specific, stable version in production
     command: ["server", "-config=/vault/config/vault.hcl"]
+    ports:
+      - "8200:8200" # Vault API
+      - "8201:8201" # Raft cluster port
     volumes:
       - ./vault:/vault/config:ro
       - vault_data:/vault/data
