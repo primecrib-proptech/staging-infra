@@ -196,7 +196,7 @@ services:
       - "8201:8201" # Raft cluster port
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
-      - ./vault/cert:/vault/config:ro
+      - ./vault/cert:/vault/certs:ro
       - vault_data:/vault/data
       - vault_logs:/vault/logs
     environment:
