@@ -8,15 +8,15 @@ disable_mlock = true
 # ---------------------------
 # API Control
 # ---------------------------
-api_addr = "http://vault:8200" # Use HTTPS
-cluster_addr = "http://vault:8201" # Use HTTPS
+api_addr = "http://127.0.0.1:8200" # Use HTTPS
+cluster_addr = "http://127.0.0.1:8201" # Use HTTPS
 
 # ---------------------------
 # Listener Configuration
 # ---------------------------
 listener "tcp" {
   address = "0.0.0.0:8200"
-  cluster_addr = "vault:8201"
+  cluster_addr = "127.0.0.1:8201"
   tls_disable = 1
   tls_cert_file = "/vault/file/vault.crt"
   tls_key_file = "/vault/file/vault.key"
