@@ -16,23 +16,23 @@ cluster_addr = "https://vault:8201" # Use HTTPS
 # ---------------------------
 listener "tcp" {
   address       = "0.0.0.0:8200"
-  cluster_address = "127.0.0.1:8201"
+  cluster_address = "0.0.0.0:8201"
 
   tls_disable = 0
-  tls_cert_file = "/vault/file/vault.crt"
-  tls_key_file = "/vault/file/vault.key"
-  tls_client_ca_file = "/vault/file/rootCA.crt"
+  tls_cert_file = "/vault/config/vault.crt"
+  tls_key_file = "/vault/config/vault.key"
+  tls_client_ca_file = "/vault/config/rootCA.crt"
 }
 
 # ---------------------------
 # Storage Configuration (Raft)
 # ---------------------------
 storage "raft" {
-  path = "/vault/file"
+  path = "/vault/data"
   node_id = "vault"
 
   retry_join {
-    leader_api_addr = "https://127.0.0.1:8200"
+    leader_api_addr = "https://vault:8200"
   }
 }
 
