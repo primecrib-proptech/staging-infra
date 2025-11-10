@@ -199,6 +199,8 @@ services:
       - ./vault/rootCA.crt:/vault/file/rootCA.crt:ro
       - ./vault/vault.crt:/vault/file/vault.crt:ro
       - ./vault/vault.key:/vault/file/vault.key:ro
+      - vault_data:/vault/file
+      - vault_logs:/vault/logs
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
       VAULT_SKIP_MIGRATION: "true" # Skip migration if starting fresh
@@ -321,6 +323,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/vault-data
+
+  vault_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-logs
 
 networks:
   backend:
