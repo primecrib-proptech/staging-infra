@@ -30,10 +30,6 @@ listener "tcp" {
 storage "raft" {
   path = "/vault/data"
   node_id = "vault"
-
-  retry_join {
-    leader_api_addr = "http://infra_vault:8200"
-  }
 }
 
 # ---------------------------
