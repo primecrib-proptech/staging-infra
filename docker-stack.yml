@@ -195,7 +195,7 @@ services:
       - "8200:8200" # Vault API
       - "8201:8201" # Raft cluster port
     volumes:
-      - vault_data:/vault/data # Persistent storage for Raft snapshots and data
+      - vault_data:/vault/file # Persistent storage for Raft snapshots and data
       - ./vault:/vault/file
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
