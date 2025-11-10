@@ -196,7 +196,7 @@ services:
       - "8201:8201" # Raft cluster port
     volumes:
       - vault_data:/vault/data # Persistent storage for Raft snapshots and data
-      - ./vault/vault.hcl:/vault/file/vault.hcl:ro # Mount your Vault configuration
+      - ./vault:/vault/file
     environment:
       VAULT_ADDR: "http://0.0.0.0:8200"
       VAULT_SKIP_MIGRATION: "true" # Skip migration if starting fresh
