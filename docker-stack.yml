@@ -292,7 +292,8 @@ services:
       - vault-2
       - vault-3
     networks:
-      - vault_net
+      - backend
+      - traefik-public
     deploy:
       resources:
         limits:

@@ -45,3 +45,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://minio:9001"
+
+    vault-service:
+      loadBalancer:
+        servers:
+          - url: "http://vault:8200"
