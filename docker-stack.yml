@@ -196,7 +196,6 @@ services:
       - -config=/vault/config/vault.hcl
     ports:
       - "8200:8200"
-      - "8201:8201"
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
