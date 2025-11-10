@@ -198,6 +198,9 @@ services:
       - ./vault:/vault/config:ro
       - vault_data:/vault/file
       - vault_logs:/vault/logs
+    environment:
+      VAULT_ADDR: "https://127.0.0.1:8200"
+      VAULT_SKIP_MIGRATION: "true" # Skip migration if starting fresh
     networks:
       - traefik-public
       - backend
