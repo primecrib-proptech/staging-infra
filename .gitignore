@@ -1,7 +1,4 @@
 traefik/acme.json
-/vault/file/vault.crt
-/vault/file/vault.key
-/vault/file/rootCA.crt
 vault/rootCA.crt
 vault/vault.crt
 vault/vault.key
