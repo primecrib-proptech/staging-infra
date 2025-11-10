@@ -16,12 +16,13 @@ cluster_addr = "https://0.0.0.0:8201" # Use HTTPS
 # ---------------------------
 listener "tcp" {
   address = "0.0.0.0:8200"
-  tls_disable = "false" # **CRITICAL: Enable TLS in production**
+  cluster_addr = "http://0.0.0.0:8201"
+  tls_disable = 1
   tls_cert_file = "/vault/file/vault.crt"
   tls_key_file = "/vault/file/vault.key"
   tls_client_ca_file = "/vault/file/rootCA.crt"
 }
-
+# tls_disable = "false" # **CRITICAL: Enable TLS in production**
 # ---------------------------
 # Storage Configuration (Raft)
 # ---------------------------
