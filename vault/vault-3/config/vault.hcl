@@ -1,5 +1,5 @@
 storage "raft" {
-  path    = "/vault/data"
+  path    = "/vault/file"
   node_id = "vault-3"
 
   retry_join {

@@ -193,7 +193,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./vault/vault-1/config:/vault/config
-      - ./vault/vault-1/data:/vault/data
+      - ./vault/vault-1/data:/vault/file
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -226,7 +226,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./vault/vault-2/config:/vault/config
-      - ./vault/vault-2/data:/vault/data
+      - ./vault/vault-2/data:/vault/file
     cap_add:
       - IPC_LOCK
     entrypoint:
@@ -259,7 +259,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./vault/vault-3/config:/vault/config
-      - ./vault/vault-3/data:/vault/data
+      - ./vault/vault-3/data:/vault/file
     cap_add:
       - IPC_LOCK
     entrypoint:
