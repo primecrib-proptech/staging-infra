@@ -16,7 +16,7 @@ cluster_addr = "http://vault:8201" # Use HTTPS
 # ---------------------------
 listener "tcp" {
   address = "0.0.0.0:8200"
-  cluster_addr = "0.0.0.0:8201"
+  cluster_addr = "vault:8201"
   tls_disable = 1
   tls_cert_file = "/vault/file/vault.crt"
   tls_key_file = "/vault/file/vault.key"
