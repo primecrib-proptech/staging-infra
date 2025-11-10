@@ -8,15 +8,15 @@ disable_mlock = true
 # ---------------------------
 # API Control
 # ---------------------------
-api_addr = "https://0.0.0.0:8200" # Use HTTPS
-cluster_addr = "https://0.0.0.0:8201" # Use HTTPS
+api_addr = "https://vault:8200" # Use HTTPS
+cluster_addr = "https://vault:8201" # Use HTTPS
 
 # ---------------------------
 # Listener Configuration
 # ---------------------------
 listener "tcp" {
   address = "0.0.0.0:8200"
-  cluster_addr = "http://0.0.0.0:8201"
+  cluster_addr = "0.0.0.0:8201"
   tls_disable = 1
   tls_cert_file = "/vault/file/vault.crt"
   tls_key_file = "/vault/file/vault.key"
@@ -28,9 +28,9 @@ listener "tcp" {
 # ---------------------------
 storage "raft" {
   path = "/vault/file"
-  node_id = "vault_node_1" # Unique ID for this node
+  node_id = "vault" # Unique ID for this node
   retry_join {
-    leader_api_addr = "https://vault_node_1:8200" # Use HTTPS with TLS
+    leader_api_addr = "https://vault:8200" # Use HTTPS with TLS
   }
 }
 
