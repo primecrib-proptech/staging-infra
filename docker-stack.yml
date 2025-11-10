@@ -193,7 +193,6 @@ services:
       context: .
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
-    restart: unless-stopped
     volumes:
       - ./vault/vault-1/config:/vault/config
       - ./vault/vault-1/data:/vault/file
@@ -229,7 +228,6 @@ services:
       context: .
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
-    restart: unless-stopped
     volumes:
       - ./vault/vault-2/config:/vault/config
       - ./vault/vault-2/data:/vault/file
@@ -265,7 +263,6 @@ services:
       context: .
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
-    restart: unless-stopped
     volumes:
       - ./vault/vault-3/config:/vault/config
       - ./vault/vault-3/data:/vault/file
@@ -301,7 +298,6 @@ services:
       context: .
       dockerfile: Dockerfile.vault
     image: vaultdockercluster:1.20
-    restart: unless-stopped
     volumes:
       - ./vault/auto-unseal-monitor.sh:/usr/local/bin/auto-unseal-monitor.sh:ro
       - ./vault/vault-1/config:/vault/config:ro
