@@ -34,6 +34,14 @@ http:
       tls:
         certResolver: letsencrypt
 
+    proptech-core-service:
+      rule: Host(`api.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: proptech-core-service
+      tls:
+        certResolver: letsencrypt
+
   services:
 
     rabbit-service:
@@ -50,3 +58,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://vault:8200"
+
+    proptech-core-service:
+      loadBalancer:
+        servers:
+          - url: "http://proptech-core-service:8081"
