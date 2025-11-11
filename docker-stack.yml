@@ -128,8 +128,6 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
-#      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,rabbit-whitelist@file,securityHeaders@file"
-      - "traefik.http.routers.rabbitmq-ui.middlewares=rabbit-auth@file,securityHeaders@file"
 
   minio:
     image: minio/minio:latest
@@ -137,7 +135,6 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
-      MINIO_DEFAULT_BUCKETS: api-bucket
     secrets:
       - minio_root_password
       - traefik_basicauth
@@ -146,7 +143,6 @@ services:
       - minio_config:/root/.minio
     ports:
       - "9000:9000"
-      - "9001:9001"
     networks:
       - backend
       - traefik-public
