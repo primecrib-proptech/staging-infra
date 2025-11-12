@@ -1,5 +1,4 @@
-#!/bin/sh
-
+#!/bin/bash
 
 # ===================================================================
 # Vault Auto-Unseal Script
@@ -11,7 +10,7 @@
 set -e
 
 # Configuration
-VAULT_ADDR="${VAULT_ADDR:-http://infra_vault:8200}"
+VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 MAX_RETRIES=30
 RETRY_INTERVAL=5
 UNSEAL_KEYS_FILE="${UNSEAL_KEYS_FILE:-/vault/config/unseal-keys.txt}"
@@ -35,94 +34,38 @@ log_error() {
 }
 
 # Wait for Vault to be available
-#wait_for_vault() {
-#    log_info "Waiting for Vault to be available at ${VAULT_ADDR}..."
-#    local retries=0
-#
-#    while [ $retries -lt $MAX_RETRIES ]; do
-#        if vault status >/dev/null 2>&1 || [ $? -eq 2 ]; then
-#            log_info "Vault is available"
-#            return 0
-#        fi
-#
-#        retries=$((retries + 1))
-#        log_warn "Vault not ready yet (attempt $retries/$MAX_RETRIES)"
-#        sleep $RETRY_INTERVAL
-#    done
-#
-#    log_error "Vault did not become available after $MAX_RETRIES attempts"
-#    return 1
-#}
-
 wait_for_vault() {
-    log_info "Waiting for Vault to be fully initialized at ${VAULT_ADDR}..."
+    log_info "Waiting for Vault to be available at ${VAULT_ADDR}..."
     local retries=0
 
-    until [ $retries -ge $MAX_RETRIES ]; do
-        # Try vault status and parse JSON safely
-        output=$(vault status -format=json 2>/dev/null) || output=""
-        sealed=$(echo "$output" | jq -r '.sealed' 2>/dev/null || echo "")
-
-        if [ "$sealed" = "true" ] || [ "$sealed" = "false" ]; then
-            log_info "Vault is ready (sealed=$sealed)"
+    while [ $retries -lt $MAX_RETRIES ]; do
+        if vault status >/dev/null 2>&1 || [ $? -eq 2 ]; then
+            log_info "Vault is available"
             return 0
         fi
 
-        retries=$((retries+1))
+        retries=$((retries + 1))
         log_warn "Vault not ready yet (attempt $retries/$MAX_RETRIES)"
         sleep $RETRY_INTERVAL
     done
 
-    log_error "Vault did not become ready after $MAX_RETRIES attempts"
+    log_error "Vault did not become available after $MAX_RETRIES attempts"
     return 1
 }
 
-
 # Check if Vault is sealed
-#is_vault_sealed() {
-#    local status
-#    status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null)
-#
-#    if [ "$status" = "true" ]; then
-#        return 0  # Sealed
-#    elif [ "$status" = "false" ]; then
-#        return 1  # Unsealed
-#    else
-#        return 2  # Unable to determine
-#    fi
-#}
-
-#is_vault_sealed() {
-#    local status
-#    for i in $(seq 1 $MAX_RETRIES); do
-#        status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
-#        if [ "$status" = "true" ]; then
-#            return 0  # Sealed
-#        elif [ "$status" = "false" ]; then
-#            return 1  # Unsealed
-#        fi
-#        log_warn "Vault not ready yet to determine seal status (attempt $i/$MAX_RETRIES)"
-#        sleep $RETRY_INTERVAL
-#    done
-#
-#    log_error "Unable to determine Vault seal status after $MAX_RETRIES attempts"
-#    return 2
-#}
-
 is_vault_sealed() {
-    output=$(vault status -format=json 2>/dev/null) || return 2
-    sealed=$(echo "$output" | jq -r '.sealed' 2>/dev/null || echo "")
+    local status
+    status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null)
 
-    if [ "$sealed" = "true" ]; then
-        return 0
-    elif [ "$sealed" = "false" ]; then
-        return 1
+    if [ "$status" = "true" ]; then
+        return 0  # Sealed
+    elif [ "$status" = "false" ]; then
+        return 1  # Unsealed
     else
-        return 2
+        return 2  # Unable to determine
     fi
 }
-
-
 
 # Unseal Vault with provided keys
 unseal_vault() {
@@ -174,45 +117,17 @@ unseal_vault() {
 }
 
 # Main execution
-#main() {
-#    log_info "Vault Auto-Unseal Script Started"
-#    log_info "Target: ${VAULT_ADDR}"
-#
-#    # Wait for Vault to be available
-#    if ! wait_for_vault; then
-#        exit 1
-#    fi
-#
-#    # Check seal status
-#    if is_vault_sealed; then
-#        log_warn "Vault is SEALED - proceeding with unseal"
-#        if unseal_vault; then
-#            log_info "✓ Vault auto-unseal completed successfully"
-#            exit 0
-#        else
-#            log_error "✗ Vault auto-unseal failed"
-#            exit 1
-#        fi
-#    else
-#        log_info "✓ Vault is already UNSEALED - no action needed"
-#        exit 0
-#    fi
-#}
-
 main() {
     log_info "Vault Auto-Unseal Script Started"
     log_info "Target: ${VAULT_ADDR}"
 
-    # Wait for Vault to be fully available
+    # Wait for Vault to be available
     if ! wait_for_vault; then
         exit 1
     fi
 
-    # Ensure we can reliably detect seal status
-    is_vault_sealed
-    sealed_status=$?
-
-    if [ $sealed_status -eq 0 ]; then
+    # Check seal status
+    if is_vault_sealed; then
         log_warn "Vault is SEALED - proceeding with unseal"
         if unseal_vault; then
             log_info "✓ Vault auto-unseal completed successfully"
@@ -221,12 +136,9 @@ main() {
             log_error "✗ Vault auto-unseal failed"
             exit 1
         fi
-    elif [ $sealed_status -eq 1 ]; then
+    else
         log_info "✓ Vault is already UNSEALED - no action needed"
         exit 0
-    else
-        log_error "Unable to determine Vault seal status"
-        exit 1
     fi
 }
 

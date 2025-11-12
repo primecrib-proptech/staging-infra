@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # ===================================================================
 # Vault Wrapper Script - Starts Vault and Auto-Unseals
