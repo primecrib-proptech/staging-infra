@@ -34,14 +34,6 @@ http:
       tls:
         certResolver: letsencrypt
 
-    redis-dashboard:
-      rule: Host(`redis.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: redis-service
-      tls:
-        certResolver: letsencrypt
-
     proptech-core-service:
       rule: Host(`api.cyberstarsng.com`)
       entryPoints:
