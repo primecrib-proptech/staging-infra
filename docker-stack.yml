@@ -185,6 +185,8 @@ services:
         max_attempts: 3
       placement:
         constraints: [node.role == manager]
+    labels:
+      - "traefik.enable=true"
 
   vault:
     image: hashicorp/vault:1.21
