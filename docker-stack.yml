@@ -200,6 +200,7 @@ services:
       - vault
       - server
       - -config=/vault/config/vault.hcl
+      - /vault/scripts/vault-wrapper.sh
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
