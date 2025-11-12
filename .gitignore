@@ -5,3 +5,5 @@ vault/vault.key
 vault/cert/
 vault/data/
 vault/unseal-keys.txt
+.DS_Store
+.idea/
