@@ -167,10 +167,7 @@ services:
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
     ports:
-      - target: 6379
-        published: 6379
-        protocol: tcp
-        mode: host
+      - "6379:6379"
     secrets:
       - redis_root_password
     volumes:
