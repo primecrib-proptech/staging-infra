@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # ===================================================================
 # Vault Auto-Unseal Script
@@ -22,21 +22,21 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    printf "${GREEN}[INFO]${NC} %s\n" "$1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    printf "${YELLOW}[WARN]${NC} %s\n" "$1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    printf "${RED}[ERROR]${NC} %s\n" "$1"
 }
 
 # Wait for Vault to be available
 wait_for_vault() {
     log_info "Waiting for Vault to be available at ${VAULT_ADDR}..."
-    local retries=0
+    retries=0
 
     while [ $retries -lt $MAX_RETRIES ]; do
         if vault status >/dev/null 2>&1 || [ $? -eq 2 ]; then
@@ -55,8 +55,7 @@ wait_for_vault() {
 
 # Check if Vault is sealed
 is_vault_sealed() {
-    local status
-    status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null)
+    status=$(vault status -format=json 2>/dev/null | grep -o '"sealed":[^,}]*' | cut -d':' -f2 | tr -d ' ')
 
     if [ "$status" = "true" ]; then
         return 0  # Sealed
@@ -79,10 +78,12 @@ unseal_vault() {
     fi
 
     # Read unseal keys from file
-    local key_count=0
-    while IFS= read -r unseal_key; do
+    key_count=0
+    while IFS= read -r unseal_key || [ -n "$unseal_key" ]; do
         # Skip empty lines and comments
-        [[ -z "$unseal_key" || "$unseal_key" =~ ^[[:space:]]*# ]] && continue
+        case "$unseal_key" in
+            ''|'#'*) continue ;;
+        esac
 
         key_count=$((key_count + 1))
         log_info "Applying unseal key $key_count..."
