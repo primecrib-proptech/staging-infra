@@ -81,7 +81,6 @@ tcp:
       service: redis-tcp
       tls:
         passthrough: true
-        certResolver: letsencrypt
 
   services:
     redis-tcp:
