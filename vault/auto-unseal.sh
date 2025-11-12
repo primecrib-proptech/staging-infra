@@ -11,7 +11,7 @@
 set -e
 
 # Configuration
-VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
+VAULT_ADDR="${VAULT_ADDR:-http://infra_vault:8200}"
 MAX_RETRIES=30
 RETRY_INTERVAL=5
 UNSEAL_KEYS_FILE="${UNSEAL_KEYS_FILE:-/vault/config/unseal-keys.txt}"
