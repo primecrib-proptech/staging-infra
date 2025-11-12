@@ -127,6 +127,9 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
+      - "traefik.tcp.routers.redis.entrypoints=redis"
+      - "traefik.tcp.routers.redis.rule=HostSNI(`*`)"
+      - "traefik.tcp.services.redis.loadbalancer.server.port=6379"
 
   minio:
     image: minio/minio:latest
@@ -192,17 +195,21 @@ services:
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
+      - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
+      - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
+      - ./vault/unseal-keys.txt:/vault/config/unseal-keys.txt:ro
       - vault_data:/vault/data
       - vault_logs:/vault/logs
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
+      UNSEAL_KEYS_FILE: "/vault/config/unseal-keys.txt"
     networks:
       - traefik-public
       - backend
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: [ "CMD", "vault", "status" ]
+      test: [ "CMD", "sh", "-c", "vault status | grep -q 'Sealed.*false'" ]
       interval: 30s
       timeout: 10s
       retries: 3

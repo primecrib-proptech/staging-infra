@@ -34,6 +34,14 @@ http:
       tls:
         certResolver: letsencrypt
 
+    redis-dashboard:
+      rule: Host(`redis.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: redis-service
+      tls:
+        certResolver: letsencrypt
+
     proptech-core-service:
       rule: Host(`api.cyberstarsng.com`)
       entryPoints:
@@ -63,3 +71,20 @@ http:
       loadBalancer:
         servers:
           - url: "http://proptech-core-service:8081"
+
+tcp:
+  routers:
+    redis:
+      entryPoints:
+        - redis
+      rule: "HostSNI(`redis.cyberstarsng.com`)"  # Required for TLS
+      service: redis-tcp
+      tls:
+        passthrough: true
+        certResolver: letsencrypt
+
+  services:
+    redis-tcp:
+      loadBalancer:
+        servers:
+          - address: "redis:6379"

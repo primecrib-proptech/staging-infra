@@ -26,6 +26,9 @@ entryPoints:
       tls:
         options: default  # Use TLS options from dynamic config
 
+    redis-tcp:
+      address: ":6379"
+
 # Enable ping for health checks
 ping:
   entryPoint: web

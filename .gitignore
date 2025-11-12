@@ -4,3 +4,4 @@ vault/vault.crt
 vault/vault.key
 vault/cert/
 vault/data/
+vault/unseal-keys.txt
