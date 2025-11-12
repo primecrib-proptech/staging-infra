@@ -166,6 +166,11 @@ services:
     image: redis:8.2-alpine
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
+    ports:
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
     secrets:
       - redis_root_password
     volumes:
