@@ -35,24 +35,48 @@ log_error() {
 }
 
 # Wait for Vault to be available
+#wait_for_vault() {
+#    log_info "Waiting for Vault to be available at ${VAULT_ADDR}..."
+#    local retries=0
+#
+#    while [ $retries -lt $MAX_RETRIES ]; do
+#        if vault status >/dev/null 2>&1 || [ $? -eq 2 ]; then
+#            log_info "Vault is available"
+#            return 0
+#        fi
+#
+#        retries=$((retries + 1))
+#        log_warn "Vault not ready yet (attempt $retries/$MAX_RETRIES)"
+#        sleep $RETRY_INTERVAL
+#    done
+#
+#    log_error "Vault did not become available after $MAX_RETRIES attempts"
+#    return 1
+#}
+
 wait_for_vault() {
-    log_info "Waiting for Vault to be available at ${VAULT_ADDR}..."
+    log_info "Waiting for Vault to be fully initialized at ${VAULT_ADDR}..."
     local retries=0
 
-    while [ $retries -lt $MAX_RETRIES ]; do
-        if vault status >/dev/null 2>&1 || [ $? -eq 2 ]; then
-            log_info "Vault is available"
+    until [ $retries -ge $MAX_RETRIES ]; do
+        # Try vault status and parse JSON safely
+        output=$(vault status -format=json 2>/dev/null) || output=""
+        sealed=$(echo "$output" | jq -r '.sealed' 2>/dev/null || echo "")
+
+        if [ "$sealed" = "true" ] || [ "$sealed" = "false" ]; then
+            log_info "Vault is ready (sealed=$sealed)"
             return 0
         fi
 
-        retries=$((retries + 1))
+        retries=$((retries+1))
         log_warn "Vault not ready yet (attempt $retries/$MAX_RETRIES)"
         sleep $RETRY_INTERVAL
     done
 
-    log_error "Vault did not become available after $MAX_RETRIES attempts"
+    log_error "Vault did not become ready after $MAX_RETRIES attempts"
     return 1
 }
+
 
 # Check if Vault is sealed
 #is_vault_sealed() {
@@ -68,22 +92,36 @@ wait_for_vault() {
 #    fi
 #}
 
-is_vault_sealed() {
-    local status
-    for i in $(seq 1 $MAX_RETRIES); do
-        status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
-        if [ "$status" = "true" ]; then
-            return 0  # Sealed
-        elif [ "$status" = "false" ]; then
-            return 1  # Unsealed
-        fi
-        log_warn "Vault not ready yet to determine seal status (attempt $i/$MAX_RETRIES)"
-        sleep $RETRY_INTERVAL
-    done
+#is_vault_sealed() {
+#    local status
+#    for i in $(seq 1 $MAX_RETRIES); do
+#        status=$(vault status -format=json 2>/dev/null | jq -r '.sealed' 2>/dev/null || echo "unknown")
+#        if [ "$status" = "true" ]; then
+#            return 0  # Sealed
+#        elif [ "$status" = "false" ]; then
+#            return 1  # Unsealed
+#        fi
+#        log_warn "Vault not ready yet to determine seal status (attempt $i/$MAX_RETRIES)"
+#        sleep $RETRY_INTERVAL
+#    done
+#
+#    log_error "Unable to determine Vault seal status after $MAX_RETRIES attempts"
+#    return 2
+#}
 
-    log_error "Unable to determine Vault seal status after $MAX_RETRIES attempts"
-    return 2
+is_vault_sealed() {
+    output=$(vault status -format=json 2>/dev/null) || return 2
+    sealed=$(echo "$output" | jq -r '.sealed' 2>/dev/null || echo "")
+
+    if [ "$sealed" = "true" ]; then
+        return 0
+    elif [ "$sealed" = "false" ]; then
+        return 1
+    else
+        return 2
+    fi
 }
+
 
 
 # Unseal Vault with provided keys
