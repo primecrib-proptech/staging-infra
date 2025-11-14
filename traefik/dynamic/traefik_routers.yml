@@ -77,7 +77,7 @@ http:
         - compression
         - rateLimit
         - retry
-        - circuitBreaker
+#        - circuitBreaker
         - buffering
         - inflightreq
 
