@@ -6,7 +6,7 @@
 -- ============================================
 -- 2️⃣ Create Roles (shared principle: least privilege)
 -- ============================================
-CREATE ROLE proptech WITH LOGIN PASSWORD :'DB_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT CONNECTION LIMIT 10;
+CREATE ROLE proptech WITH LOGIN PASSWORD :'DB_PASSWORD' SUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT CONNECTION LIMIT 10;
 CREATE ROLE proptechro WITH LOGIN PASSWORD :'DB_PASSWORD' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT CONNECTION LIMIT 5;
 
 -- ============================================
