@@ -7,8 +7,11 @@ http:
       service: api@internal
       tls:
         certResolver: letsencrypt
+        options: default
       middlewares:
         - dashboard-auth
+        - securityHeaders
+        - compression
 
     vault-dashboard:
       rule: Host(`vault.cyberstarsng.com`)
@@ -17,6 +20,15 @@ http:
       service: vault-service
       tls:
         certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+        - inflightreq
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -25,6 +37,15 @@ http:
       service: rabbit-service
       tls:
         certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+        - inflightreq
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -33,14 +54,32 @@ http:
       service: minio-service
       tls:
         certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+        - inflightreq
 
-#    proptech-core-service:
-#      rule: Host(`api.cyberstarsng.com`)
-#      entryPoints:
-#        - websecure
-#      service: proptech-core-service
-#      tls:
-#        certResolver: letsencrypt
+    proptech-core-service:
+      rule: Host(`api.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: proptech-core-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+        - inflightreq
 
   services:
 
@@ -59,10 +98,16 @@ http:
         servers:
           - url: "http://vault:8200"
 
-#    proptech-core-service:
-#      loadBalancer:
-#        servers:
-#          - url: "http://proptech-core_app:8081"
+    proptech-core-service:
+      loadBalancer:
+        servers:
+          # Swarm DNS for your stack service: <stack>_<service>
+          - url: "http://proptech-core_app:8081"
+        sticky:
+          cookie:
+            name: "proptech_sticky"
+            secure: true
+            httpOnly: true
 
 tcp:
   routers:

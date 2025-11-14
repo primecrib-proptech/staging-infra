@@ -27,16 +27,32 @@ http:
         customResponseHeaders:
           X-Powered-By: ""
           Server: ""
-        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+#        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data:;
+          connect-src 'self';
+          font-src 'self';
+          object-src 'none';
+          frame-ancestors 'self';
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
     # Rate Limiting
     rateLimit:
       rateLimit:
-        average: 20
+        average: 50
         period: 1s
-        burst: 50
+        burst: 150
+
+    # Optional stricter rate limit for sensitive endpoints (e.g., auth)
+    strictRateLimit:
+      rateLimit:
+        average: 10
+        period: 1s
+        burst: 20
 
     # Compression
     compression:

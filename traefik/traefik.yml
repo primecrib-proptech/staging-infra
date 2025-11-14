@@ -61,13 +61,7 @@ providers:
 log:
   level: INFO  # Change to DEBUG only for troubleshooting
   format: json
-#  filePath: /var/log/traefik/traefik.log
-  filePath: ""
-  maxSize: 100
-  maxBackups: 3
-  maxAge: 7
-  compress: true
-  noColor: true
+  filePath: "" # log to stdout; rely on Docker logging
 
 accessLog:
   format: json
