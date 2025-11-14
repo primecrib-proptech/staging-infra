@@ -34,13 +34,13 @@ http:
       tls:
         certResolver: letsencrypt
 
-    proptech-core-service:
-      rule: Host(`api.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: proptech-core-service
-      tls:
-        certResolver: letsencrypt
+#    proptech-core-service:
+#      rule: Host(`api.cyberstarsng.com`)
+#      entryPoints:
+#        - websecure
+#      service: proptech-core-service
+#      tls:
+#        certResolver: letsencrypt
 
   services:
 
@@ -59,10 +59,10 @@ http:
         servers:
           - url: "http://vault:8200"
 
-    proptech-core-service:
-      loadBalancer:
-        servers:
-          - url: "http://proptech-core_app:8081"
+#    proptech-core-service:
+#      loadBalancer:
+#        servers:
+#          - url: "http://proptech-core_app:8081"
 
 tcp:
   routers:
