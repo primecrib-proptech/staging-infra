@@ -102,7 +102,7 @@ http:
       loadBalancer:
         servers:
           # Swarm DNS for your stack service: <stack>_<service>
-          - url: "http://proptech-core_app:8081"
+          - url: "http://proptech_ap1:8081"
         sticky:
           cookie:
             name: "proptech_sticky"
