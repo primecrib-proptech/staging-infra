@@ -202,9 +202,6 @@ services:
   vault:
     image: hashicorp/vault:1.21
     entrypoint:
-#      - vault
-#      - server
-#      - -config=/vault/config/vault.hcl
       - /vault/scripts/vault-wrapper.sh
     volumes:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro

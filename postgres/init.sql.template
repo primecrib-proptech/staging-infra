@@ -75,3 +75,9 @@ ALTER ROLE proptechro SET search_path = core, public;
 
 -- Optional: enforce password encryption
 SHOW password_encryption;
+
+\connect proptechdb
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+SELECT PostGIS_Version();

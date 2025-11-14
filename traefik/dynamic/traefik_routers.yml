@@ -62,7 +62,7 @@ http:
     proptech-core-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-api:8081"
+          - url: "http://proptech-core_app:8081"
 
 tcp:
   routers:
