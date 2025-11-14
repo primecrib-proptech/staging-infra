@@ -355,6 +355,7 @@ networks:
     driver_opts:
       encrypted: "true"
   shared-network:
+    driver: overlay
     external: true
 
 secrets:
