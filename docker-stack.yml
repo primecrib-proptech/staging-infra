@@ -26,6 +26,7 @@ services:
       - traefik_basicauth
     networks:
       - traefik-public
+      - shared-network
     environment:
       - TZ=UTC
     healthcheck:
@@ -72,6 +73,7 @@ services:
       - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
     networks:
       - backend
+      - shared-network
     secrets:
       - db_name
       - db_user
@@ -118,6 +120,7 @@ services:
     networks:
       - backend
       - traefik-public
+      - shared-network
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -151,6 +154,7 @@ services:
     networks:
       - backend
       - traefik-public
+      - shared-network
     deploy:
       replicas: 1
       restart_policy:
@@ -175,6 +179,7 @@ services:
     networks:
       - backend
       - traefik-public
+      - shared-network
     configs:
       - source: redis_conf
         target: /usr/local/etc/redis/redis.conf
@@ -215,6 +220,7 @@ services:
     networks:
       - traefik-public
       - backend
+      - shared-network
     cap_add:
       - IPC_LOCK
     healthcheck:
@@ -351,6 +357,8 @@ networks:
     external: false
     driver_opts:
       encrypted: "true"
+  shared-network:
+    external: true
 
 secrets:
   db_name:
