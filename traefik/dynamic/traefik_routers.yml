@@ -65,7 +65,7 @@ http:
         - inflightreq
 
     proptech-core-service:
-      rule: Host(`proptech-api.cyberstarsng.com`)
+      rule: Host(`proptech-api.cyberstarsng.com/api/v1`)
       entryPoints:
         - websecure
       service: proptech-core-service
@@ -80,7 +80,7 @@ http:
         - circuitBreaker
         - buffering
         - inflightreq
-        - proptech-api-prefix
+#        - proptech-api-prefix
 
   services:
 
