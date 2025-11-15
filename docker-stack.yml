@@ -125,9 +125,6 @@ services:
         constraints: [node.role == manager]
     labels:
       - "traefik.enable=true"
-      - "traefik.tcp.routers.redis.entrypoints=redis"
-      - "traefik.tcp.routers.redis.rule=HostSNI(`*`)"
-      - "traefik.tcp.services.redis.loadbalancer.server.port=6379"
 
   minio:
     image: minio/minio:latest
