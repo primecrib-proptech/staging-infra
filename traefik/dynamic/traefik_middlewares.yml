@@ -12,6 +12,9 @@ http:
         permanent: true
         port: "443"
 
+    proptech-api-prefix:
+      addPrefix:
+        prefix: "/api/v1"
     # Security headers
     securityHeaders:
       headers:

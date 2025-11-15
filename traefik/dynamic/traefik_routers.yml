@@ -80,6 +80,7 @@ http:
         - circuitBreaker
         - buffering
         - inflightreq
+        - proptech-api-prefix
 
   services:
 
@@ -101,7 +102,7 @@ http:
     proptech-core-service:
       loadBalancer:
         servers:
-          - url: "http://proptech_api:8081/api/v1"
+          - url: "http://proptech_api:8081"
         sticky:
           cookie:
             name: "proptech_sticky"
