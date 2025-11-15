@@ -12,6 +12,8 @@ api:
 entryPoints:
   web:
     address: ":80"
+    forwardedHeaders:
+      insecure: true
     http:
       # Redirect HTTP → HTTPS only after certs are issued
       redirections:
@@ -22,6 +24,8 @@ entryPoints:
 
   websecure:
     address: ":443"
+    forwardedHeaders:
+      insecure: true
     http:
       tls:
         options: default  # Use TLS options from dynamic config
@@ -77,6 +81,7 @@ accessLog:
       names:
         User-Agent: keep
         X-Forwarded-For: keep
+        X-Forwarded-Host: keep
         X-Real-Ip: keep
         X-Forwarded-Proto: keep
 
