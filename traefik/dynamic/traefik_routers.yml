@@ -82,20 +82,6 @@ http:
         - inflightreq
         - proptech-api-prefix
 
-    proptech-core-swagger:
-      rule: Host(`proptech-api.cyberstarsng.com`) && PathPrefix(`/api/v1/swagger`,`/api/v1/v3/api-docs`,`/api/v1/configuration`,`/api/v1/swagger-ui.html`,`/api/v1/swagger-resources`,`/api/v1/webjars`)
-      entryPoints:
-        - websecure
-      service: proptech-core-service
-      middlewares:
-        - securityHeaders
-        - compression
-        - rateLimit
-        - retry
-        - circuitBreaker
-        - buffering
-        - inflightreq
-
   services:
 
     rabbit-service:
