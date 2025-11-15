@@ -165,7 +165,6 @@ services:
       - redis_data:/data
     networks:
       - backend
-      - traefik-public
       - shared-network
     configs:
       - source: redis_conf
