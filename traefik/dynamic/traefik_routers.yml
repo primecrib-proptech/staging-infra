@@ -107,19 +107,3 @@ http:
             name: "proptech_sticky"
             secure: true
             httpOnly: true
-
-tcp:
-  routers:
-    redis:
-      entryPoints:
-        - redis
-      rule: "HostSNI(`redis.cyberstarsng.com`)"  # Required for TLS
-      service: redis-tcp
-      tls:
-        passthrough: true
-
-  services:
-    redis-tcp:
-      loadBalancer:
-        servers:
-          - address: "redis:6379"
