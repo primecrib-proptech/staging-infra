@@ -101,7 +101,7 @@ http:
     proptech-core-service:
       loadBalancer:
         servers:
-          - url: "http://proptech_api:8081"
+          - url: "http://proptech_api:8081/api/v1"
         sticky:
           cookie:
             name: "proptech_sticky"
