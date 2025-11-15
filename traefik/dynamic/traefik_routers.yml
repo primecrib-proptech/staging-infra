@@ -41,7 +41,6 @@ http:
         - compression
         - rateLimit
         - retry
-        - circuitBreaker
         - buffering
 
     minio-dashboard:
