@@ -80,6 +80,7 @@ http:
         - circuitBreaker
         - buffering
         - inflightreq
+        - proptech-api-prefix
 
   services:
 
