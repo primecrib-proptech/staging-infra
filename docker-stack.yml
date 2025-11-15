@@ -13,9 +13,6 @@ services:
       - target: 443
         published: 443
         mode: host
-      - target: 6379
-        published: 6379
-        mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -51,11 +48,11 @@ services:
         failure_action: rollback
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
-        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
-        - "traefik.http.routers.traefik-dashboard.service=api@internal"
-        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth@file,securityHeaders@file"
+#        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.cyberstarsng.com`)"
+#        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+#        - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+#        - "traefik.http.routers.traefik-dashboard.service=api@internal"
+#        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth@file,securityHeaders@file"
 
   postgres:
     image: postgis/postgis:16-3.5

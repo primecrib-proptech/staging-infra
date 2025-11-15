@@ -75,11 +75,11 @@ http:
       middlewares:
         - securityHeaders
         - compression
-        - rateLimit
-        - retry
+#        - rateLimit
+#        - retry
 #        - circuitBreaker
-        - buffering
-        - inflightreq
+#        - buffering
+#        - inflightreq
 
   services:
 
@@ -101,7 +101,6 @@ http:
     proptech-core-service:
       loadBalancer:
         servers:
-          # Swarm DNS for your stack service: <stack>_<service>
           - url: "http://proptech_api:8081"
         sticky:
           cookie:
