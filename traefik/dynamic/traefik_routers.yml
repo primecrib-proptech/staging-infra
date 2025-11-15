@@ -81,7 +81,6 @@ http:
         - buffering
         - inflightreq
         - proptech-api-prefix
-        - strip-api-prefix
 
   services:
 

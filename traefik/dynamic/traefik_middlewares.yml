@@ -15,10 +15,7 @@ http:
     proptech-api-prefix:
       addPrefix:
         prefix: "/api/v1"
-    strip-api-prefix:
-      stripPrefix:
-        prefixes:
-          - "/api/v1"
+
     # Security headers
     securityHeaders:
       headers:
