@@ -80,7 +80,6 @@ http:
         - circuitBreaker
         - buffering
         - inflightreq
-        - strip-api-prefix
 
   services:
 
