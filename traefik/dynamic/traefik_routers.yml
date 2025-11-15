@@ -75,11 +75,11 @@ http:
       middlewares:
         - securityHeaders
         - compression
-#        - rateLimit
-#        - retry
-#        - circuitBreaker
-#        - buffering
-#        - inflightreq
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+        - inflightreq
 
   services:
 
