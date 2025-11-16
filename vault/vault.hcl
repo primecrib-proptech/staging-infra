@@ -8,8 +8,8 @@ disable_mlock = false
 # ---------------------------
 # API Control
 # ---------------------------
-api_addr = "http://127.0.0.1:8200" # Use HTTPS
-cluster_addr = "http://127.0.0.1:8201" # Use HTTPS
+api_addr = "https://127.0.0.1:8200" # Use HTTPS
+cluster_addr = "https://127.0.0.1:8201" # Use HTTPS
 
 # api_addr = "https://vault.cyberstarsng.com"
 # cluster_addr = "https://vault.cyberstarsng.com:8201"
