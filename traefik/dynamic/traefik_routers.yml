@@ -101,3 +101,19 @@ http:
             name: "proptech_sticky"
             secure: true
             httpOnly: true
+
+tcp:
+  routers:
+    vault:
+      entryPoints:
+        - vault
+      rule: "HostSNI(`vault.cyberstarsng.com`)"  # Required for TLS
+      service: vault-tcp
+      tls:
+        passthrough: false
+
+  services:
+    vault-tcp:
+      loadBalancer:
+        servers:
+          - address: "vault:8200"

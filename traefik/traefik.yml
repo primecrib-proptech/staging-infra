@@ -30,6 +30,9 @@ entryPoints:
       tls:
         options: default  # Use TLS options from dynamic config
 
+  vault:
+    address: ":8200"
+
 # Enable ping for health checks
 ping:
   entryPoint: web
