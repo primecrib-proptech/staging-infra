@@ -22,7 +22,7 @@ listener "tcp" {
   address       = "0.0.0.0:8200"
   cluster_address = "0.0.0.0:8201"
 
-  # tls_disable = 1 # i - disable TLS and 0 - enable TLS
+  tls_disable = 0 # i - disable TLS and 0 - enable TLS
   tls_cert_file = "/vault/certs/vault.crt"
   tls_key_file = "/vault/certs/vault.key"
   tls_client_ca_file = "/vault/certs/rootCA.crt"
