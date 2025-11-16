@@ -16,18 +16,12 @@ http:
       rule: Host(`vault.cyberstarsng.com`)
       entryPoints:
         - websecure
-        - vault
       service: vault-service
       tls:
         certResolver: letsencrypt
         options: default
       middlewares:
         - securityHeaders
-        - compression
-        - rateLimit
-        - retry
-        - circuitBreaker
-        - buffering
 
     rabbit-dashboard:
       rule: Host(`rabbit.cyberstarsng.com`)
@@ -92,6 +86,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://vault:8200"
+      serversTransport: vaultTransport
 
     proptech-core-service:
       loadBalancer:
@@ -103,15 +98,19 @@ http:
             secure: true
             httpOnly: true
 
+serversTransports:
+  vaultTransport:
+    insecureSkipVerify: true
+
 tcp:
   routers:
-    vault:
+    vault-tcp:
       entryPoints:
-        - vault
+        - websecure
       rule: "HostSNI(`vault.cyberstarsng.com`)"  # Required for TLS
       service: vault-tcp
       tls:
-        passthrough: false
+        passthrough: true
 
   services:
     vault-tcp:
