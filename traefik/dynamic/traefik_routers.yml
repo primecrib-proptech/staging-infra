@@ -16,6 +16,7 @@ http:
       rule: Host(`vault.cyberstarsng.com`)
       entryPoints:
         - websecure
+        - vault
       service: vault-service
       tls:
         certResolver: letsencrypt
