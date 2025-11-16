@@ -85,7 +85,7 @@ http:
     vault-service:
       loadBalancer:
         servers:
-          - url: "https://vault:8200"
+          - url: "http://vault:8200"
       serversTransport: vaultTransport
 
     proptech-core-service:
