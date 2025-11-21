@@ -37,6 +37,7 @@ http:
         - rateLimit
         - retry
         - buffering
+        - rabbitmq-csp
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -98,9 +99,10 @@ http:
             secure: true
             httpOnly: true
 
-serversTransports:
-  vaultTransport:
-    insecureSkipVerify: true
+
+  serversTransports:
+    vaultTransport:
+      insecureSkipVerify: true
 
 tcp:
   routers:

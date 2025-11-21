@@ -5,6 +5,10 @@ http:
     dashboard-auth:
       basicAuth:
         usersFile: /run/secrets/traefik_basicauth
+
+    rabbitmq-csp:
+      headers:
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src *; img-src * data:; font-src * data:;"
     # Redirect HTTP → HTTPS
     redirect-to-https:
       redirectScheme:
