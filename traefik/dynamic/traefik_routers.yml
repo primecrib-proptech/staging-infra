@@ -32,7 +32,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
-        - securityHeaders
+#        - securityHeaders
         - compression
         - rateLimit
         - retry
