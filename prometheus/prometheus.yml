@@ -8,40 +8,9 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Scrape Spring Boot Applications via Docker Swarm DNS Discovery
-  - job_name: 'proptech_api'
-    metrics_path: '/api/v1/actuator'
-    dns_sd_configs:
-      - names:
-          - 'proptech_api'
-        type: 'A'
-        port: 8081
 
   - job_name: 'proptech_api_prometheus'
     metrics_path: '/api/v1/actuator/prometheus'
-    dns_sd_configs:
-      - names:
-          - 'proptech_api'
-        type: 'A'
-        port: 8081
-
-  - job_name: 'proptech_api_metrics'
-    metrics_path: '/api/v1/actuator/metrics'
-    dns_sd_configs:
-      - names:
-          - 'proptech_api'
-        type: 'A'
-        port: 8081
-
-  - job_name: 'proptech_api_quartz'
-    metrics_path: '/api/v1/actuator/quartz'
-    dns_sd_configs:
-      - names:
-          - 'proptech_api'
-        type: 'A'
-        port: 8081
-
-  - job_name: 'proptech_api_health'
-    metrics_path: '/api/v1/actuator/health'
     dns_sd_configs:
       - names:
           - 'proptech_api'
