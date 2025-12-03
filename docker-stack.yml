@@ -229,7 +229,7 @@ services:
       - "traefik.enable=true"
 
   prometheus:
-    image: prom/prometheus:v2.49.1
+    image: prom/prometheus:v3.8.0
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -265,7 +265,7 @@ services:
       retries: 3
 
   grafana:
-    image: grafana/grafana:10.3.1
+    image: grafana/grafana:12.1
     environment:
       - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_root_password
       - GF_USERS_ALLOW_SIGN_UP=false
