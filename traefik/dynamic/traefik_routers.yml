@@ -55,6 +55,40 @@ http:
         - circuitBreaker
         - buffering
 
+    prometheus-dashboard:
+      rule: Host(`prometheus.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: prometheus-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - dashboard-auth
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
+    grafana-dashboard:
+      rule: Host(`grafana.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: grafana-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - dashboard-auth
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
       entryPoints:
@@ -88,6 +122,16 @@ http:
         serversTransport: vaultTransport
         servers:
           - url: "http://vault:8200"
+
+    prometheus-service:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
 
     proptech-core-service:
       loadBalancer:

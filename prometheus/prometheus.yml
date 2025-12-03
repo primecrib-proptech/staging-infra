@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape Spring Boot Applications via Docker Swarm DNS Discovery
+  - job_name: 'proptech_api'
+    metrics_path: '/actuator/prometheus'
+    dns_sd_configs:
+      - names:
+          - 'proptech_api' # CHANGE THIS to your actual spring boot service name
+        type: 'A'
+        port: 8081
