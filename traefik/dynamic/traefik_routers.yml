@@ -81,7 +81,6 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
-        - dashboard-auth
         - securityHeaders
         - compression
         - rateLimit
