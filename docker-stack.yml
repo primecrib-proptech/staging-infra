@@ -273,7 +273,7 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_provisioning:/etc/grafana/provisioning
     networks:
       - backend
       - traefik-public
@@ -343,6 +343,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/grafana-data
+
+  grafana_provisioning:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/grafana-provisioning
 
   traefik_letsencrypt:
     driver: local
