@@ -267,7 +267,7 @@ services:
   grafana:
     image: grafana/grafana:10.3.1
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_root_password
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_root_password
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://grafana.localhost
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
