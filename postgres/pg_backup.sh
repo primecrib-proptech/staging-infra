@@ -15,10 +15,24 @@ BACKUP_DIR="/var/backups/postgres"
 GDRIVE_FOLDER_ID="YOUR_GOOGLE_DRIVE_FOLDER_ID"
 DATE=$(date +%Y-%m-%d_%H-%M)
 LOG_FILE="/var/log/pg_backup.log"
+GDRIVE_CMD="/usr/local/bin/gdrive"
 
 # Logging function
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+# --- INSTALLATION CHECK ---
+install_gdrive() {
+    log "gdrive not found. Attempting to install..."
+    # Download the latest Linux x64 release from glotlabs/gdrive
+    if wget -O "$GDRIVE_CMD" https://github.com/glotlabs/gdrive/releases/download/3.0.0/gdrive-linux-x64; then
+        chmod +x "$GDRIVE_CMD"
+        log "gdrive installed successfully to $GDRIVE_CMD"
+    else
+        log "Error: Failed to download gdrive."
+        return 1
+    fi
 }
 
 log "Starting backup process..."
@@ -35,10 +49,23 @@ if ! mkdir -p "$BACKUP_DIR"; then
     exit 1
 fi
 
+# Check/Install gdrive
+if ! command -v "$GDRIVE_CMD" &> /dev/null; then
+    if ! install_gdrive; then
+        exit 1
+    fi
+fi
+
+# Check for gdrive authentication (simple check if 'gdrive account list' returns anything)
+# Note: On first run, you MUST run 'gdrive account add' manually in the terminal!
+if ! "$GDRIVE_CMD" account list &> /dev/null; then
+    log "Error: gdrive is not authenticated. Please run '$GDRIVE_CMD account add' manually on the server to link your Google account."
+    # We exit here because we can't backup to cloud without auth
+    exit 1
+fi
+
 # Find the Docker container ID
 log "Finding Postgres container..."
-# Using docker ps to find the container ID. 
-# We filter by name and take the first one found.
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=${CONTAINER_NAME_PATTERN}" | head -n 1)
 
 if [ -z "$CONTAINER_ID" ]; then
@@ -49,8 +76,6 @@ log "Found container ID: $CONTAINER_ID"
 
 # 1. Fetch Databases
 log "Fetching database list from container..."
-# We execute 'psql' inside the container as the 'postgres' user.
-# This bypasses the need for a password (peer authentication).
 if ! DATABASES=$(docker exec -u postgres "$CONTAINER_ID" psql -At -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';"); then
     log "Error: Failed to list databases from container. Ensure the container is healthy."
     exit 1
@@ -64,10 +89,8 @@ for DB_NAME in $DATABASES; do
 
     # 2. Dump and Compress
     log "Dumping $DB_NAME..."
-    # We run pg_dump inside the container and stream the output to gzip on the host
     if ! docker exec -u postgres "$CONTAINER_ID" pg_dump "$DB_NAME" | gzip > "$FILE"; then
         log "Error: Failed to dump database $DB_NAME"
-        # Clean up empty file if created
         [ -f "$FILE" ] && rm "$FILE"
         continue
     fi
@@ -83,18 +106,11 @@ for DB_NAME in $DATABASES; do
     # 4. Upload
     if [ -f "$ENCRYPTED_FILE" ]; then
         log "Uploading to Google Drive..."
-        # Check if gdrive command exists (adjust path if your gdrive binary is elsewhere)
-        GDRIVE_CMD="/usr/local/bin/gdrive"
-        if command -v $GDRIVE_CMD &> /dev/null; then
-             if $GDRIVE_CMD upload --parent "$GDRIVE_FOLDER_ID" "$ENCRYPTED_FILE"; then
-                log "Upload successful."
-                # Remove local files after upload to save space
-                rm "$FILE" "$ENCRYPTED_FILE"
-             else
-                log "Error: Google Drive upload failed."
-             fi
+        if "$GDRIVE_CMD" upload --parent "$GDRIVE_FOLDER_ID" "$ENCRYPTED_FILE"; then
+            log "Upload successful."
+            rm "$FILE" "$ENCRYPTED_FILE"
         else
-            log "Warning: gdrive command not found at $GDRIVE_CMD. Skipping upload."
+            log "Error: Google Drive upload failed."
         fi
     fi
 done
