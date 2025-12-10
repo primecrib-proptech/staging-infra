@@ -156,9 +156,20 @@ tcp:
       service: vault-tcp
       tls:
         passthrough: true
+    minio-tcp:
+      entryPoints:
+        - websecure
+      rule: "HostSNI(`minio.s3.cyberstarsng.com`)"  # Required for TLS
+      service: minio-tcp
+      tls:
+        passthrough: true
 
   services:
     vault-tcp:
       loadBalancer:
         servers:
           - address: "vault:8200"
+    minio-s3-service:
+      loadBalancer:
+        servers:
+          - url: "minio:9000"
