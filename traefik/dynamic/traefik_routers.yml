@@ -193,4 +193,4 @@ tcp:
     minio-tcp:
       loadBalancer:
         servers:
-          - url: "minio:9000"
+          - address: "minio:9000"
