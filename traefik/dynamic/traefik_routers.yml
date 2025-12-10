@@ -190,7 +190,7 @@ tcp:
       loadBalancer:
         servers:
           - address: "vault:8200"
-    minio-s3-service:
+    minio-tcp:
       loadBalancer:
         servers:
           - url: "minio:9000"
