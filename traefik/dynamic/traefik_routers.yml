@@ -55,6 +55,22 @@ http:
         - circuitBreaker
         - buffering
 
+    minio-s3:
+      rule: Host(`minio.s3.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: minio-s3-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
     prometheus-dashboard:
       rule: Host(`prometheus.cyberstarsng.com`)
       entryPoints:
@@ -115,6 +131,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://minio:9001"
+
+    minio-s3-service:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9000"
 
     vault-service:
       loadBalancer:
