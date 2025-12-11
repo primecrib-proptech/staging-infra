@@ -38,20 +38,20 @@ http:
         - buffering
         - rabbitmq-csp
 
-#    rabbitmq:
-#      rule: Host(`rabbitmq.cyberstarsng.com`)
-#      entryPoints:
-#        - websecure
-#      service: rabbit-mq-service
-#      tls:
-#        certResolver: letsencrypt
-#        options: default
-#      middlewares:
-#        - compression
-#        - rateLimit
-#        - retry
-#        - buffering
-#        - rabbitmq-csp
+    rabbitmq:
+      rule: Host(`rabbitmq.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: rabbit-mq-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - compression
+        - rateLimit
+        - retry
+        - buffering
+        - rabbitmq-csp
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -69,21 +69,21 @@ http:
         - circuitBreaker
         - buffering
 
-#    minio-s3:
-#      rule: Host(`minio.s3.cyberstarsng.com`)
-#      entryPoints:
-#        - websecure
-#      service: minio-s3-service
-#      tls:
-#        certResolver: letsencrypt
-#        options: default
-#      middlewares:
-#        - securityHeaders
-#        - compression
-#        - rateLimit
-#        - retry
-#        - circuitBreaker
-#        - buffering
+    minio-s3:
+      rule: Host(`minio.s3.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: minio-s3-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
 
     prometheus-dashboard:
       rule: Host(`prometheus.cyberstarsng.com`)
@@ -141,20 +141,20 @@ http:
         servers:
           - url: "http://rabbitmq:15672"
 
-#    rabbit-mq-service:
-#      loadBalancer:
-#        servers:
-#          - url: "http://rabbitmq:5672"
+    rabbit-mq-service:
+      loadBalancer:
+        servers:
+          - url: "http://rabbitmq:5672"
 
     minio-service:
       loadBalancer:
         servers:
           - url: "http://minio:9001"
 
-#    minio-s3-service:
-#      loadBalancer:
-#        servers:
-#          - url: "http://minio:9000"
+    minio-s3-service:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9000"
 
     vault-service:
       loadBalancer:
