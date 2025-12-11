@@ -53,6 +53,20 @@ http:
         - buffering
         - rabbitmq-csp
 
+    redis:
+      rule: Host(`redis.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: redis-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - compression
+        - rateLimit
+        - retry
+        - buffering
+
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
       entryPoints:
@@ -135,7 +149,6 @@ http:
         - buffering
 
   services:
-
     rabbit-service:
       loadBalancer:
         servers:
@@ -145,6 +158,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://rabbitmq:5672"
+
+    redis-service:
+      loadBalancer:
+        servers:
+          - url: "http://redis:6379"
 
     minio-service:
       loadBalancer:
@@ -210,6 +228,13 @@ tcp:
       service: rabbit-tcp
       tls:
         passthrough: true
+    redis-tcp:
+      entryPoints:
+        - websecure
+      rule: "HostSNI(`redis.cyberstarsng.com`)"  # Required for TLS
+      service: redis-tcp
+      tls:
+        passthrough: true
 
   services:
     vault-tcp:
@@ -224,3 +249,7 @@ tcp:
       loadBalancer:
         servers:
           - address: "rabbitmq:5672"
+    redis-tcp:
+      loadBalancer:
+        servers:
+          - address: "redis:6379"

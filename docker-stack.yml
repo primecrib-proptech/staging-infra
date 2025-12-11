@@ -159,6 +159,8 @@ services:
     image: redis:8.2-alpine
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
+    expose:
+      - "6379"
     secrets:
       - redis_root_password
     volumes:
