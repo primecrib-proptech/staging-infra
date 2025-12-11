@@ -14,13 +14,6 @@ entryPoints:
     address: ":80"
     forwardedHeaders:
       insecure: true
-    http:
-      # Redirect HTTP → HTTPS only after certs are issued
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
 
   websecure:
     address: ":443"
