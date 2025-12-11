@@ -194,3 +194,7 @@ tcp:
       loadBalancer:
         servers:
           - address: "minio:9000"
+    rabbit-tcp:
+      loadBalancer:
+        servers:
+          - address: "rabbit:5672"
