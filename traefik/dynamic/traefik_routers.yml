@@ -184,6 +184,13 @@ tcp:
       service: minio-tcp
       tls:
         passthrough: true
+    rabbit-tcp:
+      entryPoints:
+        - websecure
+      rule: "HostSNI(`rabbitmq.cyberstarsng.com`)"  # Required for TLS
+      service: rabbit-tcp
+      tls:
+        passthrough: true
 
   services:
     vault-tcp:
