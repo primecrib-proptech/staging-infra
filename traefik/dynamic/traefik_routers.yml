@@ -53,34 +53,6 @@ http:
         - buffering
         - rabbitmq-csp
 
-    redis:
-      rule: Host(`redis.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: redis-service
-      tls:
-        certResolver: letsencrypt
-        options: default
-      middlewares:
-        - compression
-        - rateLimit
-        - retry
-        - buffering
-
-#    postgres:
-#      rule: Host(`postgres.cyberstarsng.com`)
-#      entryPoints:
-#        - websecure
-#      service: postgres-service
-#      tls:
-#        certResolver: letsencrypt
-#        options: default
-#      middlewares:
-#        - compression
-#        - rateLimit
-#        - retry
-#        - buffering
-
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
       entryPoints:
@@ -172,16 +144,6 @@ http:
       loadBalancer:
         servers:
           - url: "http://rabbitmq:5672"
-
-    redis-service:
-      loadBalancer:
-        servers:
-          - url: "http://redis:6379"
-
-#    postgres-service:
-#      loadBalancer:
-#        servers:
-#          - url: "http://postgres:5432"
 
     minio-service:
       loadBalancer:
