@@ -67,19 +67,19 @@ http:
         - retry
         - buffering
 
-    postgres:
-      rule: Host(`postgres.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: postgres-service
-      tls:
-        certResolver: letsencrypt
-        options: default
-      middlewares:
-        - compression
-        - rateLimit
-        - retry
-        - buffering
+#    postgres:
+#      rule: Host(`postgres.cyberstarsng.com`)
+#      entryPoints:
+#        - websecure
+#      service: postgres-service
+#      tls:
+#        certResolver: letsencrypt
+#        options: default
+#      middlewares:
+#        - compression
+#        - rateLimit
+#        - retry
+#        - buffering
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -178,10 +178,10 @@ http:
         servers:
           - url: "http://redis:6379"
 
-    postgres-service:
-      loadBalancer:
-        servers:
-          - url: "http://postgres:5432"
+#    postgres-service:
+#      loadBalancer:
+#        servers:
+#          - url: "http://postgres:5432"
 
     minio-service:
       loadBalancer:
