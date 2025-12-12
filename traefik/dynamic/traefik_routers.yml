@@ -38,20 +38,20 @@ http:
         - buffering
         - rabbitmq-csp
 
-    rabbitmq:
-      rule: Host(`rabbitmq.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: rabbit-mq-service
-      tls:
-        certResolver: letsencrypt
-        options: default
-      middlewares:
-        - compression
-        - rateLimit
-        - retry
-        - buffering
-        - rabbitmq-csp
+#    rabbitmq:
+#      rule: Host(`rabbitmq.cyberstarsng.com`)
+#      entryPoints:
+#        - websecure
+#      service: rabbit-mq-service
+#      tls:
+#        certResolver: letsencrypt
+#        options: default
+#      middlewares:
+#        - compression
+#        - rateLimit
+#        - retry
+#        - buffering
+#        - rabbitmq-csp
 
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
@@ -140,10 +140,10 @@ http:
         servers:
           - url: "http://rabbitmq:15672"
 
-    rabbit-mq-service:
-      loadBalancer:
-        servers:
-          - url: "http://rabbitmq:5672"
+#    rabbit-mq-service:
+#      loadBalancer:
+#        servers:
+#          - url: "http://rabbitmq:5672"
 
     minio-service:
       loadBalancer:
