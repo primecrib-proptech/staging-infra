@@ -67,6 +67,20 @@ http:
         - retry
         - buffering
 
+    postgres:
+      rule: Host(`postgres.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: postgres-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - compression
+        - rateLimit
+        - retry
+        - buffering
+
     minio-dashboard:
       rule: Host(`minio.cyberstarsng.com`)
       entryPoints:
@@ -164,6 +178,11 @@ http:
         servers:
           - url: "http://redis:6379"
 
+    postgres-service:
+      loadBalancer:
+        servers:
+          - url: "http://postgres:5432"
+
     minio-service:
       loadBalancer:
         servers:
@@ -235,6 +254,13 @@ tcp:
       service: redis-tcp
       tls:
         passthrough: true
+    postgres-tcp:
+      entryPoints:
+        - websecure
+      rule: "HostSNI(`postgres.cyberstarsng.com`)"  # Required for TLS
+      service: postgres-tcp
+      tls:
+        passthrough: true
 
   services:
     vault-tcp:
@@ -253,3 +279,7 @@ tcp:
       loadBalancer:
         servers:
           - address: "redis:6379"
+    postgres-tcp:
+      loadBalancer:
+        servers:
+          - address: "postgres:5432"
