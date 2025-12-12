@@ -100,8 +100,8 @@ services:
       sh -c "export RABBITMQ_DEFAULT_USER=admin &&
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              exec rabbitmq-server"
-    expose:
-      - "5672"
+    ports:
+      - "5672:5672"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
     secrets:
@@ -160,8 +160,8 @@ services:
     image: redis:8.2-alpine
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     secrets:
       - redis_root_password
     volumes:
