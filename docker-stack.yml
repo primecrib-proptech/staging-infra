@@ -330,12 +330,9 @@ services:
       - github_runner_token
       - github_pat
     entrypoint: [ "sh", "-lc" ]
-    command: |
-      if [ -f /var/runner-setup.sh ]; then
-        chmod +x /var/runner-setup.sh
-        /var/runner-setup.sh
-      fi
-      exec /entrypoint.sh
+    command: >
+        [ -f /var/runner-setup.sh ] && chmod +x /var/runner-setup.sh && /var/runner-setup.sh;
+        exec /entrypoint.sh
     networks:
       - backend
       - shared-network
