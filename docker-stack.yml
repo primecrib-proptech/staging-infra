@@ -305,6 +305,58 @@ services:
       timeout: 10s
       retries: 3
 
+  github-runner:
+    image: myoung34/github-runner:latest
+    environment:
+      REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
+
+      # Runner identity
+      RUNNER_NAME: "vps-runner-01"
+      RUNNER_LABELS: "self-hosted,linux,x64,vps"
+      RUNNER_WORKDIR: "/_work"
+
+      # Optional: run as ephemeral (runner is removed after a single job)
+      # Good for security; but requires a fresh registration token whenever it restarts.
+      EPHEMERAL: "false"
+
+      # Optional: allow running as root (some jobs need it)
+      RUNNER_ALLOW_RUNASROOT: "1"
+
+      # Token is read from a file (Swarm secret)
+      ACCESS_TOKEN: ""
+      RUNNER_TOKEN_FILE: "/run/secrets/github_runner_token"
+
+    secrets:
+      - github_runner_token
+      - github_pat
+    entrypoint: [ "sh", "-lc" ]
+    command: |
+      chmod +x /var/runner-setup.sh || true
+      /var/runner-setup.sh || true
+      exec /entrypoint.sh
+    networks:
+      - backend
+      - shared-network
+    volumes:
+      # Allows workflows to run docker build/push on the VPS docker engine
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
+
+      # Persist runner state/workdir (optional; useful if not ephemeral)
+      - runner_work:/_work
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 10
+        window: 60s
+
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
@@ -411,6 +463,13 @@ volumes:
       o: bind
       device: /opt/containers/storages/vault-logs
 
+  runner_work:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/runner-work
+
 networks:
   backend:
     driver: overlay
@@ -455,4 +514,6 @@ secrets:
   traefik_basicauth:
     external: true
   redis_root_password:
+    external: true
+  github_pat:
     external: true
