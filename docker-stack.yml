@@ -331,8 +331,10 @@ services:
       - github_pat
     entrypoint: [ "sh", "-lc" ]
     command: |
-      chmod +x /var/runner-setup.sh || true
-      /var/runner-setup.sh || true
+      if [ -f /var/runner-setup.sh ]; then
+        chmod +x /var/runner-setup.sh
+        /var/runner-setup.sh
+      fi
       exec /entrypoint.sh
     networks:
       - backend
