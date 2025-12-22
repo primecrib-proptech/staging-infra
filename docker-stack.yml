@@ -341,7 +341,7 @@ services:
       RUNNER_NAME_PREFIX: "swarm-runner"
       RUNNER_LABELS: "self-hosted,linux,x64,vps,production"
       RUNNER_WORKDIR: "/_work"
-      EPHEMERAL: "false"
+      EPHEMERAL: "true"
       RUNNER_ALLOW_RUNASROOT: "1"
     secrets:
       - github_pat
