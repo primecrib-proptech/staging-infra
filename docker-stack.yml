@@ -336,12 +336,12 @@ services:
 
   github-runner:
     image: myoung34/github-runner:latest
-#    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
+    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
     environment:
       # Auto-registration settings
       REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
       # The image can use a PAT from a file to fetch its own registration token
-      ACCESS_TOKEN_FILE: "/run/secrets/github_pat"
+#      ACCESS_TOKEN_FILE: "/run/secrets/github_pat"
 
       # Runner identity
       RUNNER_NAME_PREFIX: "swarm-runner"
@@ -358,7 +358,7 @@ services:
       - shared-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-#      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
+      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
       - runner_work:/_work
     deploy:
       mode: replicated
