@@ -357,9 +357,8 @@ services:
       - backend
       - shared-network
     volumes:
-      # Crucial for "Docker-in-Docker" (building images in CI)
       - /var/run/docker.sock:/var/run/docker.sock
-      # Persist work directory to speed up subsequent builds
+      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
       - runner_work:/_work
     deploy:
       mode: replicated
