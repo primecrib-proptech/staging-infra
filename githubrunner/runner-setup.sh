@@ -27,5 +27,5 @@ export ACCESS_TOKEN=$PAT
 # 5. IMPORTANT: Start the runner worker process in the foreground
 # This is what keeps the container running and the status GREEN.
 echo "Runner configured. Starting worker..."
-cd /home/docker/actions-runner
+cd /actions-runner
 exec ./run.sh

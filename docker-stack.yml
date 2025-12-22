@@ -336,7 +336,6 @@ services:
 
   github-runner:
     image: myoung34/github-runner:latest
-    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
     environment:
       REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
       # Runner identity
@@ -354,7 +353,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
       - runner_work:/_work
-      - github_runner_data:/home/docker/actions-runner
+    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
     deploy:
       mode: replicated
       replicas: 1
