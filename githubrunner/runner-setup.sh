@@ -22,10 +22,17 @@ export ACCESS_TOKEN=$PAT
 
 # 4. Configure the runner (this creates the .runner file)
 # We use the original entrypoint to handle the "Configuring" logic
+echo "Configuring runner..."
 /entrypoint.sh --help > /dev/null 2>&1 || true # Trigger internal config if needed
 
 # 5. IMPORTANT: Start the runner worker process in the foreground
 # This is what keeps the container running and the status GREEN.
-echo "Runner configured. Starting worker..."
+echo "Runner configured. Starting worker loop..."
 cd /actions-runner
-exec ./run.sh
+
+while true; do
+  echo "Starting runner listener..."
+  ./run.sh
+  echo "Runner listener exited. Restarting in 5 seconds..."
+  sleep 5
+done
