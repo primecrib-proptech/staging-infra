@@ -103,6 +103,22 @@ http:
         - circuitBreaker
         - buffering
 
+    portainer-dashboard:
+      rule: Host(`portainer.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: portainer-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
       entryPoints:
@@ -150,6 +166,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://grafana:3000"
+
+    portainer-service:
+      loadBalancer:
+        servers:
+          - url: "http://portainer:9000"
 
     proptech-core-service:
       loadBalancer:
