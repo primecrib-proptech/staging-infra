@@ -339,7 +339,7 @@ services:
     entrypoint: [ "/bin/bash", "-c" ]
     command:
       - |
-        export ACCESS_TOKEN=$(cat /run/secrets/github_pat)
+        export ACCESS_TOKEN=$$(cat /run/secrets/github_pat)
         /entrypoint.sh
     environment:
       # Auto-registration settings
