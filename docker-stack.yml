@@ -334,34 +334,34 @@ services:
       labels:
         - "traefik.enable=true"
 
-  github-runner:
-    image: myoung34/github-runner:latest
-    environment:
-      REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
-      RUNNER_NAME_PREFIX: "swarm-runner"
-      RUNNER_LABELS: "self-hosted,linux,x64,vps,production"
-      RUNNER_WORKDIR: "/_work"
-      EPHEMERAL: "true"
-      RUNNER_ALLOW_RUNASROOT: "1"
-    secrets:
-      - github_pat
-    networks:
-      - backend
-      - shared-network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
-      - runner_work:/_work
-    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-        delay: 10s
+#  github-runner:
+#    image: myoung34/github-runner:latest
+#    environment:
+#      REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
+#      RUNNER_NAME_PREFIX: "swarm-runner"
+#      RUNNER_LABELS: "self-hosted,linux,x64,vps,production"
+#      RUNNER_WORKDIR: "/_work"
+#      EPHEMERAL: "false"
+#      RUNNER_ALLOW_RUNASROOT: "1"
+#    secrets:
+#      - github_pat
+#    networks:
+#      - backend
+#      - shared-network
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
+#      - runner_work:/_work
+#    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
+#    deploy:
+#      mode: replicated
+#      replicas: 1
+#      placement:
+#        constraints:
+#          - node.role == manager
+#      restart_policy:
+#        condition: on-failure
+#        delay: 10s
 
 
 # ────────────────────────────────
