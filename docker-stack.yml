@@ -336,11 +336,7 @@ services:
 
   github-runner:
     image: myoung34/github-runner:latest
-    entrypoint: [ "/bin/bash", "-c" ]
-    command:
-      - |
-        export ACCESS_TOKEN=$$(cat /run/secrets/github_pat)
-        /entrypoint.sh
+    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
     environment:
       # Auto-registration settings
       REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
