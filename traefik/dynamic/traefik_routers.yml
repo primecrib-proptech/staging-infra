@@ -201,7 +201,7 @@ http:
     proptech-app-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-app_app:8080"
+          - url: "http://proptech-app_app"
         sticky:
           cookie:
             name: "proptech_app_sticky"
