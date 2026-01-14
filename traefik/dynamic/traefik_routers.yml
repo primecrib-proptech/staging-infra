@@ -135,6 +135,22 @@ http:
         - circuitBreaker
         - buffering
 
+    proptech-app:
+      rule: Host(`proptech.app.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: proptech-app-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
   services:
     rabbit-service:
       loadBalancer:
@@ -179,6 +195,16 @@ http:
         sticky:
           cookie:
             name: "proptech_sticky"
+            secure: true
+            httpOnly: true
+
+    proptech-app-service:
+      loadBalancer:
+        servers:
+          - url: "http://proptech-app_app:8080"
+        sticky:
+          cookie:
+            name: "proptech_app_sticky"
             secure: true
             httpOnly: true
 
