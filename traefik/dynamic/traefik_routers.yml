@@ -136,7 +136,7 @@ http:
         - buffering
 
     proptech-app:
-      rule: Host(`proptech.app.cyberstarsng.com`)
+      rule: Host(`admin.cyberstarsng.com`)
       entryPoints:
         - websecure
       service: proptech-app-service
