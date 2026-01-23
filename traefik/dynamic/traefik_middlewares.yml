@@ -44,6 +44,35 @@ http:
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
+    frontendSecurityHeaders:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true # to be true after certs are issued
+        frameDeny: true
+        sslRedirect: true # to be true after certs are issued
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline';
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          style-src-attr 'unsafe-inline';
+          img-src 'self' data:;
+          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://admin.cyberstarsng.com;
+          font-src 'self' https://fonts.gstatic.com data:;
+          object-src 'none';
+          base-uri 'self';
+          frame-ancestors 'self';
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+
     # Rate Limiting
     rateLimit:
       rateLimit:
