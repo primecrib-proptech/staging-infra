@@ -135,6 +135,22 @@ http:
         - circuitBreaker
         - buffering
 
+    proptech-gateway-service:
+      rule: Host(`staging.api.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: proptech-gateway-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
     proptech-app:
       rule: Host(`admin.cyberstarsng.com`)
       entryPoints:
@@ -195,6 +211,16 @@ http:
         sticky:
           cookie:
             name: "proptech_sticky"
+            secure: true
+            httpOnly: true
+
+    proptech-gateway-service:
+      loadBalancer:
+        servers:
+          - url: "http://proptech-gateway_api-gateway:8008"
+        sticky:
+          cookie:
+            name: "proptech_gateway_sticky"
             secure: true
             httpOnly: true
 
