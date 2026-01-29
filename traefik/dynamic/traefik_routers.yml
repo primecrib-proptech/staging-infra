@@ -164,7 +164,6 @@ http:
         - compression
         - rateLimit
         - retry
-        - circuitBreaker
         - buffering
 
   services:
