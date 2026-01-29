@@ -144,7 +144,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
-        - securityHeaders
+        - gatewaySecurityHeaders
         - compression
         - rateLimit
         - retry
