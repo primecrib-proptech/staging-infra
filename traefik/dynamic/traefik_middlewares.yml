@@ -65,7 +65,7 @@ http:
           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-attr 'unsafe-inline';
           img-src 'self' data:;
-          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://admin.cyberstarsng.com;
+          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com  https://staging.api.cyberstarsng.com https://admin.cyberstarsng.com;
           font-src 'self' https://fonts.gstatic.com data:;
           object-src 'none';
           base-uri 'self';
