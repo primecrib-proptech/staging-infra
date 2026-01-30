@@ -141,7 +141,7 @@ http:
       rule: Host(`redis-insight.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: adminer-service
+      service: redis-insight-service
       tls:
         certResolver: letsencrypt
         options: default
