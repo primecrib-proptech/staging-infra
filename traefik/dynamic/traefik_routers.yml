@@ -54,22 +54,6 @@ http:
         - circuitBreaker
         - buffering
 
-    minio-s3:
-      rule: Host(`minio.s3.cyberstarsng.com`)
-      entryPoints:
-        - websecure
-      service: minio-s3-service
-      tls:
-        certResolver: letsencrypt
-        options: default
-      middlewares:
-        - securityHeaders
-        - compression
-        - rateLimit
-        - retry
-        - circuitBreaker
-        - buffering
-
     prometheus-dashboard:
       rule: Host(`prometheus.cyberstarsng.com`)
       entryPoints:
@@ -112,6 +96,40 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
+    adminer-dashboard:
+      rule: Host(`adminer.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: adminer-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - dashboard-auth
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
+    redis-insight-dashboard:
+      rule: Host(`redis-insight.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: adminer-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - dashboard-auth
         - securityHeaders
         - compression
         - rateLimit
@@ -177,11 +195,6 @@ http:
         servers:
           - url: "http://minio:9001"
 
-    minio-s3-service:
-      loadBalancer:
-        servers:
-          - url: "http://minio:9000"
-
     vault-service:
       loadBalancer:
         serversTransport: vaultTransport
@@ -202,6 +215,16 @@ http:
       loadBalancer:
         servers:
           - url: "http://portainer:9000"
+
+    adminer-service:
+      loadBalancer:
+        servers:
+          - url: "http://adminer:8080"
+
+    redis-insight-service:
+      loadBalancer:
+        servers:
+          - url: "http://redis-insight:5540"
 
     proptech-core-service:
       loadBalancer:
@@ -247,32 +270,11 @@ tcp:
       service: vault-tcp
       tls:
         passthrough: true
-    minio-tcp:
-      entryPoints:
-        - websecure
-      rule: "HostSNI(`minio.s3.cyberstarsng.com`)"  # Required for TLS
-      service: minio-tcp
-      tls:
-        passthrough: true
     rabbit-tcp:
       entryPoints:
         - websecure
       rule: "HostSNI(`rabbitmq.cyberstarsng.com`)"  # Required for TLS
       service: rabbit-tcp
-      tls:
-        passthrough: true
-    redis-tcp:
-      entryPoints:
-        - websecure
-      rule: "HostSNI(`redis.cyberstarsng.com`)"  # Required for TLS
-      service: redis-tcp
-      tls:
-        passthrough: true
-    postgres-tcp:
-      entryPoints:
-        - websecure
-      rule: "HostSNI(`postgres.cyberstarsng.com`)"  # Required for TLS
-      service: postgres-tcp
       tls:
         passthrough: true
 
@@ -289,11 +291,3 @@ tcp:
       loadBalancer:
         servers:
           - address: "rabbitmq:5672"
-    redis-tcp:
-      loadBalancer:
-        servers:
-          - address: "redis:6379"
-    postgres-tcp:
-      loadBalancer:
-        servers:
-          - address: "postgres:5432"

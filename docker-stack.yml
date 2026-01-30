@@ -56,8 +56,6 @@ services:
       POSTGRES_USER_FILE: /run/secrets/db_user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
-    ports:
-      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -66,7 +64,6 @@ services:
     networks:
       - traefik-public
       - backend
-      - shared-network
     secrets:
       - db_name
       - db_user
@@ -113,7 +110,6 @@ services:
     networks:
       - backend
       - traefik-public
-      - shared-network
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -144,7 +140,6 @@ services:
     networks:
       - backend
       - traefik-public
-      - shared-network
     deploy:
       replicas: 1
       restart_policy:
@@ -160,8 +155,6 @@ services:
     image: redis:8.2-alpine
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
-    ports:
-      - "6379"
     secrets:
       - redis_root_password
     volumes:
@@ -169,7 +162,6 @@ services:
     networks:
       - traefik-public
       - backend
-      - shared-network
     configs:
       - source: redis_conf
         target: /usr/local/etc/redis/redis.conf
@@ -205,7 +197,6 @@ services:
     networks:
       - traefik-public
       - backend
-      - shared-network
     cap_add:
       - IPC_LOCK
     healthcheck:
@@ -333,6 +324,57 @@ services:
         window: 120s
       labels:
         - "traefik.enable=true"
+
+  adminer:
+    image: adminer:5.4.1
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - traefik_basicauth
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.adminer.rule=Host(`adminer.cyberstarsng.com`)"
+        - "traefik.http.routers.adminer.entrypoints=websecure"
+        - "traefik.http.routers.adminer.tls.certresolver=letsencrypt"
+        - "traefik.http.services.adminer.loadbalancer.server.port=8080"
+        - "traefik.http.routers.adminer.middlewares=basicauth"  # Assuming a basicauth middleware is defined
+
+  redis-insight:
+    image: redis/redisinsight:3.0.2
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - traefik_basicauth
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.redis-insight.rule=Host(`redis-insight.cyberstarsng.com`)"
+        - "traefik.http.routers.redis-insight.entrypoints=websecure"
+        - "traefik.http.routers.redis-insight.tls.certresolver=letsencrypt"
+        - "traefik.http.services.redis-insight.loadbalancer.server.port=5540"
+        - "traefik.http.routers.redis-insight.middlewares=basicauth"  # Assuming a basicauth middleware is defined
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
