@@ -131,10 +131,6 @@ http:
         - dashboard-auth
         - securityHeaders
         - compression
-        - rateLimit
-        - retry
-        - buffering
-
 
     redis-insight-dashboard:
       rule: Host(`redis-insight.cyberstarsng.com`)
