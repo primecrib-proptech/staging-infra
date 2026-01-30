@@ -57,7 +57,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
     ports:
-      - 5432:5432
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -101,7 +101,7 @@ services:
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              exec rabbitmq-server"
     ports:
-      - "5672:5672"
+      - "5672"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
     secrets:
@@ -140,7 +140,7 @@ services:
       - minio_data:/data
       - minio_config:/root/.minio
     ports:
-      - "9000:9000"
+      - "9000"
     networks:
       - backend
       - traefik-public
@@ -161,7 +161,7 @@ services:
     environment:
       REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
     ports:
-      - "6379:6379"
+      - "6379"
     secrets:
       - redis_root_password
     volumes:
@@ -334,36 +334,6 @@ services:
       labels:
         - "traefik.enable=true"
 
-#  github-runner:
-#    image: myoung34/github-runner:latest
-#    environment:
-#      REPO_URL: "https://github.com/cyberstarsng/proptech-core-service"
-#      RUNNER_NAME_PREFIX: "swarm-runner"
-#      RUNNER_LABELS: "self-hosted,linux,x64,vps,production"
-#      RUNNER_WORKDIR: "/_work"
-#      EPHEMERAL: "false"
-#      RUNNER_ALLOW_RUNASROOT: "1"
-#    secrets:
-#      - github_pat
-#    networks:
-#      - backend
-#      - shared-network
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      - ./githubrunner/runner-setup.sh:/var/runner-setup.sh:ro
-#      - runner_work:/_work
-#    entrypoint: ["/bin/bash", "/var/runner-setup.sh"]
-#    deploy:
-#      mode: replicated
-#      replicas: 1
-#      placement:
-#        constraints:
-#          - node.role == manager
-#      restart_policy:
-#        condition: on-failure
-#        delay: 10s
-
-
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
@@ -435,13 +405,6 @@ volumes:
       o: bind
       device: /opt/containers/storages/traefik-logs
 
-  github-runner-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/github-runner-data
-
   rabbitmq_data:
     driver: local
     driver_opts:
@@ -469,20 +432,6 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/vault-logs
-
-  runner_work:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/runner-work
-
-  github_runner_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/github-runner-data
 
   portainer_data:
     driver: local
@@ -528,13 +477,9 @@ secrets:
     external: true
   minio_root_password:
     external: true
-  github_runner_token:
-    external: true
   grafana_root_password:
     external: true
   traefik_basicauth:
     external: true
   redis_root_password:
-    external: true
-  github_pat:
     external: true
