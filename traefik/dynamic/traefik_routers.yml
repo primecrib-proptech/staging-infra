@@ -54,6 +54,22 @@ http:
         - circuitBreaker
         - buffering
 
+    minio-s3:
+      rule: Host(`minio.s3.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: minio-s3-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - circuitBreaker
+        - buffering
+
     prometheus-dashboard:
       rule: Host(`prometheus.cyberstarsng.com`)
       entryPoints:
@@ -120,6 +136,7 @@ http:
         - circuitBreaker
         - buffering
 
+
     redis-insight-dashboard:
       rule: Host(`redis-insight.cyberstarsng.com`)
       entryPoints:
@@ -129,7 +146,6 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
-        - dashboard-auth
         - securityHeaders
         - compression
         - rateLimit
@@ -194,6 +210,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://minio:9001"
+
+    minio-s3-service:
+      loadBalancer:
+        servers:
+          - url: "http://minio:9000"
 
     vault-service:
       loadBalancer:
@@ -268,6 +289,13 @@ tcp:
         - websecure
       rule: "HostSNI(`vault.cyberstarsng.com`)"  # Required for TLS
       service: vault-tcp
+      tls:
+        passthrough: true
+    minio-tcp:
+      entryPoints:
+        - websecure
+      rule: "HostSNI(`minio.s3.cyberstarsng.com`)"  # Required for TLS
+      service: minio-tcp
       tls:
         passthrough: true
     rabbit-tcp:
