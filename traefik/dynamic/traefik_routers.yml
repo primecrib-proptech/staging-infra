@@ -255,7 +255,7 @@ http:
     proptech-gateway-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-gateway_api-gateway:8008"
+          - url: "http://proptech_gateway:8008"
         sticky:
           cookie:
             name: "proptech_gateway_sticky"
