@@ -268,7 +268,7 @@ http:
           - url: "http://proptech_admin:3000"
         sticky:
           cookie:
-            name: "proptech_app_sticky"
+            name: "proptech_admin_sticky"
             secure: true
             httpOnly: true
 
