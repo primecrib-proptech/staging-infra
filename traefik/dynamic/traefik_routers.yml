@@ -262,10 +262,10 @@ http:
             secure: true
             httpOnly: true
 
-    proptech-app-service:
+    proptech-admin-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-admin_admin:3000"
+          - url: "http://proptech_admin:3000"
         sticky:
           cookie:
             name: "proptech_app_sticky"
