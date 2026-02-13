@@ -180,11 +180,11 @@ http:
         - circuitBreaker
         - buffering
 
-    proptech-app:
+    proptech-admin:
       rule: Host(`staging.admin.primecrib.app`)
       entryPoints:
         - websecure
-      service: proptech-app-service
+      service: proptech-admin-service
       tls:
         certResolver: letsencrypt
         options: default
@@ -265,7 +265,7 @@ http:
     proptech-app-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-app_app:80"
+          - url: "http://proptech-admin:3000"
         sticky:
           cookie:
             name: "proptech_app_sticky"
