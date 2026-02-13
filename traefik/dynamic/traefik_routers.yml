@@ -265,7 +265,7 @@ http:
     proptech-app-service:
       loadBalancer:
         servers:
-          - url: "http://proptech-admin:3000"
+          - url: "http://proptech-admin_admin:3000"
         sticky:
           cookie:
             name: "proptech_app_sticky"
