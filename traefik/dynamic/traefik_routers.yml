@@ -180,6 +180,7 @@ http:
       entryPoints:
         - websecure
       service: proptech-gateway-service
+      priority: 1
       tls:
         certResolver: letsencrypt
         options: default
