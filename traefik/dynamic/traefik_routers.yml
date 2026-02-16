@@ -164,6 +164,20 @@ http:
         - circuitBreaker
         - buffering
 
+    # WebSocket route: no buffering/compression/retry/circuitBreaker (they break Upgrade)
+    proptech-gateway-websocket:
+      rule: Host(`staging.api.primecrib.app`) && PathPrefix(`/api/v1/live`)
+      entryPoints:
+        - websecure
+      service: proptech-gateway-service
+      priority: 10
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+        - rateLimit
+
     proptech-gateway-service:
       rule: Host(`staging.api.primecrib.app`)
       entryPoints:
