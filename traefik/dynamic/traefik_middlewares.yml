@@ -65,7 +65,7 @@ http:
           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-attr 'unsafe-inline';
           img-src 'self' data: https://minio.s3.cyberstarsng.com https://minio.s3.primecrib.app;
-          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com;
+          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com http://localhost:3000;
           font-src 'self' https://fonts.gstatic.com data:;
           object-src 'none';
           base-uri 'self';
