@@ -260,21 +260,21 @@ http:
       loadBalancer:
         servers:
           - url: "http://proptech_api:8081"
-        sticky:
-          cookie:
-            name: "proptech_sticky"
-            secure: true
-            httpOnly: true
+        # sticky:
+        #   cookie:
+        #     name: "proptech_sticky"
+        #     secure: true
+        #     httpOnly: true
 
     proptech-gateway-service:
       loadBalancer:
         servers:
           - url: "http://proptech_gateway:8008"
-        sticky:
-          cookie:
-            name: "proptech_gateway_sticky"
-            secure: true
-            httpOnly: true
+        # sticky:
+        #   cookie:
+        #     name: "proptech_gateway_sticky"
+        #     secure: true
+        #     httpOnly: true
 
     proptech-admin-service:
       loadBalancer:
