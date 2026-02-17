@@ -164,23 +164,11 @@ http:
         - circuitBreaker
         - buffering
 
-    # WebSocket: route directly to core (bypass gateway – Spring Cloud Gateway often fails to complete WS upgrade)
-    proptech-live-websocket:
-      rule: Host(`staging.api.primecrib.app`) && PathPrefix(`/api/v1/live`)
-      entryPoints:
-        - websecure
-      service: proptech-core-service
-      priority: 10
-      tls:
-        certResolver: letsencrypt
-        options: default
-
     proptech-gateway-service:
       rule: Host(`staging.api.primecrib.app`)
       entryPoints:
         - websecure
       service: proptech-gateway-service
-      priority: 1
       tls:
         certResolver: letsencrypt
         options: default
@@ -258,21 +246,21 @@ http:
       loadBalancer:
         servers:
           - url: "http://proptech_api:8081"
-        # sticky:
-        #   cookie:
-        #     name: "proptech_sticky"
-        #     secure: true
-        #     httpOnly: true
+        sticky:
+          cookie:
+            name: "proptech_sticky"
+            secure: true
+            httpOnly: true
 
     proptech-gateway-service:
       loadBalancer:
         servers:
           - url: "http://proptech_gateway:8008"
-        # sticky:
-        #   cookie:
-        #     name: "proptech_gateway_sticky"
-        #     secure: true
-        #     httpOnly: true
+        sticky:
+          cookie:
+            name: "proptech_gateway_sticky"
+            secure: true
+            httpOnly: true
 
     proptech-admin-service:
       loadBalancer:
