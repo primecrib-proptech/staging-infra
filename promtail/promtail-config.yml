@@ -17,7 +17,7 @@ scrape_configs:
   - job_name: proptech_api
     static_configs:
       - targets:
-          - localhost
+          - http://proptech_api:8081
         labels:
           job: proptech_api
           __path__: /app/logs/*.log
