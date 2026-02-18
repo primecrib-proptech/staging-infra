@@ -273,6 +273,7 @@ services:
       - backend
       - traefik-public
       - shared-network
+      - observability
     secrets:
       - grafana_root_password
       - traefik_basicauth
@@ -365,6 +366,47 @@ services:
           - node.role == manager
       labels:
         - "traefik.enable=true"
+
+  loki:
+    image: grafana/loki:2.9.3
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+      - observability
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+      - observability
+
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
@@ -472,6 +514,13 @@ volumes:
       o: bind
       device: /opt/containers/storages/portainer
 
+  loki_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/loki-data
+
 networks:
   backend:
     driver: overlay
@@ -486,6 +535,8 @@ networks:
       encrypted: "true"
   shared-network:
     driver: overlay
+    external: true
+  observability:
     external: true
 
 secrets:
