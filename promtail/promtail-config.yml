@@ -16,10 +16,10 @@ scrape_configs:
         target_label: container
   - job_name: proptech_api
     static_configs:
-      - targets:
-          - http://proptech_api:8081
+      - targets: ['localhost']
         labels:
           job: proptech_api
+          # path to the logs that Promtail should read. Ensure this path is mounted into the Promtail container
           __path__: /app/logs/*.log
     pipeline_stages:
       - json:
@@ -28,4 +28,5 @@ scrape_configs:
             message: message
             userId: userId
       - labels:
-          level: userId
+          level:
+          userId:
