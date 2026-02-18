@@ -394,6 +394,7 @@ services:
     volumes:
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./promtail/promtail-config.yml:/etc/promtail/config.yml
     deploy:
       mode: global
