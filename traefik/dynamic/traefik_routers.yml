@@ -140,13 +140,13 @@ http:
       tls:
         certResolver: letsencrypt
         options: default
-      middlewares:
-        - securityHeaders
-        - compression
-        - rateLimit
-        - retry
-        - circuitBreaker
-        - buffering
+#      middlewares:
+#        - securityHeaders
+#        - compression
+#        - rateLimit
+#        - retry
+#        - circuitBreaker
+#        - buffering
 
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
