@@ -3,6 +3,10 @@ auth_enabled: false
 server:
   http_listen_port: 3100
 
+memberlist:
+  join_members:
+    - loki
+
 common:
   path_prefix: /loki
   storage:
