@@ -41,6 +41,7 @@ http:
           font-src 'self';
           object-src 'none';
           frame-ancestors 'self';
+          worker-src 'self' https://grafana.cyberstarsng.com blob:;
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
@@ -70,7 +71,6 @@ http:
           object-src 'none';
           base-uri 'self';
           frame-ancestors 'self';
-          worker-src 'self' https://grafana.cyberstarsng.com blob:;
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
 
