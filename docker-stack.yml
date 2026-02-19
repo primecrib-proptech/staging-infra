@@ -69,6 +69,8 @@ services:
       - db_user
       - db_password
       - postgres_password
+      - minio_root_password
+      - postgres_backup_encryption_pass
     deploy:
       replicas: 1
       restart_policy:
@@ -566,4 +568,6 @@ secrets:
   traefik_basicauth:
     external: true
   redis_root_password:
+    external: true
+  postgres_backup_encryption_pass:
     external: true
