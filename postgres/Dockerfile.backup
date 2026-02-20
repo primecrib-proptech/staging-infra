@@ -1,5 +1,6 @@
 # Backup runner: postgres client 16 (must match server) + awscli + gzip + gnupg.
-FROM postgres:16-bookworm
+# Use same major version as postgres server (postgis/postgis:16-3.5).
+FROM postgres:16.9-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     awscli \
