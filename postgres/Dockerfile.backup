@@ -1,8 +1,7 @@
-# Backup runner: postgres client + awscli + gzip + gnupg. Runs pg_backup.sh on a schedule.
-FROM debian:bookworm-slim
+# Backup runner: postgres client 16 (must match server) + awscli + gzip + gnupg.
+FROM postgres:16-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client \
     awscli \
     gzip \
     gnupg \
