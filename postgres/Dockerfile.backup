@@ -1,0 +1,20 @@
+# Backup runner: postgres client + awscli + gzip + gnupg. Runs pg_backup.sh on a schedule.
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    awscli \
+    gzip \
+    gnupg \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Script is mounted from stack at runtime; ensure path exists and is executable
+RUN mkdir -p /var/backups/postgres /var/log && touch /var/log/pg_backup.log
+
+# Run cron in foreground
+COPY cron.backup /etc/cron.d/pg-backup
+RUN chmod 0644 /etc/cron.d/pg-backup && \
+    crontab /etc/cron.d/pg-backup
+
+CMD ["cron", "-f"]

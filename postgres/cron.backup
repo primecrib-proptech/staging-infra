@@ -1,0 +1,4 @@
+# Run PostgreSQL backup daily at 02:00 UTC
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+0 2 * * * root /usr/local/bin/pg_backup.sh
