@@ -1,18 +1,16 @@
-# Backup runner: postgres client 16 (must match server) + awscli + gzip + gnupg.
-# Use same major version as postgres server (postgis/postgis:16-3.5).
-FROM postgres:16.9-bookworm
+# Backup runner: same Postgres image as server so pg_dump version matches exactly.
+# Server uses postgis/postgis:16-3.5; we add awscli + cron only.
+FROM postgis/postgis:16-3.5
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     awscli \
+    cron \
     gzip \
     gnupg \
-    cron \
     && rm -rf /var/lib/apt/lists/*
 
-# Script is mounted from stack at runtime; ensure path exists and is executable
 RUN mkdir -p /var/backups/postgres /var/log && touch /var/log/pg_backup.log
 
-# Run cron in foreground
 COPY cron.backup /etc/cron.d/pg-backup
 RUN chmod 0644 /etc/cron.d/pg-backup && \
     crontab /etc/cron.d/pg-backup
