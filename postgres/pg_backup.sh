@@ -1,56 +1,57 @@
 #!/bin/bash
 
-# PostgreSQL backup script: dump from Docker container -> (optional) encrypt -> upload to MinIO/S3.
-# Run via cron for automation, e.g. daily: 0 2 * * * /path/to/pg_backup.sh
+# PostgreSQL backup: dump -> (optional) encrypt -> upload to MinIO/S3.
+# Supports two modes:
+#   1. Container mode: run inside a container with secrets mounted at /run/secrets/
+#      (PGHOST, MinIO and encryption read from secrets; no docker exec)
+#   2. Host mode: run on host with env vars set; finds Postgres via docker and uses docker exec
 
 set -e
 set -o pipefail
 
-# --- Configuration (override via environment) ---
+# --- Configuration (override via environment; container mode fills from /run/secrets) ---
 CONTAINER_NAME_PATTERN="${POSTGRES_CONTAINER_PATTERN:-postgres}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/postgres}"
 DATE=$(date +%Y-%m-%d_%H-%M)
 LOG_FILE="${LOG_FILE:-/var/log/pg_backup.log}"
-S3_ENDPOINT_URL=http://minio:9000
-S3_BUCKET=postgres-backups
-S3_PREFIX=postgres
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=$(cat /run/secrets/minio_root_password)
-BACKUP_ENCRYPTION_PASS=$(cat /run/secrets/postgres_backup_encryption_pass)
-
-# Optional: encrypt backups with GPG (leave unset to skip encryption)
-ENCRYPTION_PASS="${BACKUP_ENCRYPTION_PASS:-}"
-
-# MinIO / S3 (required for upload)
-S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-}"   # e.g. http://minio:9000 or https://minio.s3.cyberstarsng.com
-S3_BUCKET="${S3_BUCKET:-}"               # e.g. postgres-backups
-S3_PREFIX="${S3_PREFIX:-postgres}"       # optional prefix (folder) in bucket, e.g. postgres/production
-# Use standard AWS env vars for MinIO credentials:
-#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-#   (or MINIO_ACCESS_KEY / MINIO_SECRET_KEY mapped to these if you prefer)
-
-# Retention: delete local files after upload; optional S3 retention is via MinIO lifecycle
 KEEP_LOCAL_AFTER_UPLOAD="${KEEP_LOCAL_AFTER_UPLOAD:-false}"
+
+# Container mode: when secrets exist, read MinIO and optional encryption from them
+if [ -r /run/secrets/minio_root_password ]; then
+    export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-minioadmin}"
+    export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-$(cat /run/secrets/minio_root_password)}"
+    export S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-http://minio:9000}"
+    export S3_BUCKET="${S3_BUCKET:-postgres-backups}"
+    export S3_PREFIX="${S3_PREFIX:-postgres}"
+    [ -r /run/secrets/postgres_backup_encryption_pass ] && export BACKUP_ENCRYPTION_PASS="${BACKUP_ENCRYPTION_PASS:-$(cat /run/secrets/postgres_backup_encryption_pass)}"
+    # Postgres connection for container mode (same network as postgres service)
+    if [ -r /run/secrets/db_user ] && [ -r /run/secrets/postgres_password ]; then
+        export PGHOST="${PGHOST:-postgres}"
+        export PGPORT="${PGPORT:-5432}"
+        export PGUSER="${PGUSER:-$(cat /run/secrets/db_user)}"
+        export PGPASSWORD="${PGPASSWORD:-$(cat /run/secrets/postgres_password)}"
+    fi
+fi
+
+ENCRYPTION_PASS="${BACKUP_ENCRYPTION_PASS:-}"
+S3_ENDPOINT_URL="${S3_ENDPOINT_URL:-}"
+S3_BUCKET="${S3_BUCKET:-}"
+S3_PREFIX="${S3_PREFIX:-postgres}"
 
 # --- Helpers ---
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-# Ensure AWS CLI is available (used for S3-compatible MinIO)
 ensure_aws_cli() {
-    if command -v aws &> /dev/null; then
-        return 0
-    fi
-    log "aws CLI not found. Install with: apt-get install -y awscli  # or: pip install awscli"
-    return 1
+    command -v aws &> /dev/null || { log "aws CLI not found."; return 1; }
 }
 
 # --- Validation ---
-log "Starting PostgreSQL backup (Docker -> MinIO/S3)..."
+log "Starting PostgreSQL backup..."
 
 if [ -z "$S3_ENDPOINT_URL" ] || [ -z "$S3_BUCKET" ]; then
-    log "Error: S3_ENDPOINT_URL and S3_BUCKET must be set (e.g. in .env or cron)."
+    log "Error: S3_ENDPOINT_URL and S3_BUCKET must be set (or run inside backup container with secrets mounted)."
     exit 1
 fi
 
@@ -68,21 +69,33 @@ if ! mkdir -p "$BACKUP_DIR"; then
     exit 1
 fi
 
-# --- Find Postgres container ---
-log "Finding Postgres container (pattern: ${CONTAINER_NAME_PATTERN})..."
-CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=${CONTAINER_NAME_PATTERN}" | head -n 1)
-
-if [ -z "$CONTAINER_ID" ]; then
-    log "Error: No running container found matching '${CONTAINER_NAME_PATTERN}'"
-    exit 1
+# --- Obtain database list: container mode (PGHOST) vs host mode (docker exec) ---
+CONTAINER_MODE=
+if [ -n "$PGHOST" ] && [ -n "$PGUSER" ] && [ -n "$PGPASSWORD" ]; then
+    CONTAINER_MODE=1
+    log "Using container mode (PGHOST=${PGHOST})..."
 fi
-log "Found container: $CONTAINER_ID"
 
-# --- List databases (exclude template and default postgres) ---
-log "Fetching database list..."
-if ! DATABASES=$(docker exec -u postgres "$CONTAINER_ID" psql -At -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';"); then
-    log "Error: Failed to list databases. Is the container healthy?"
-    exit 1
+if [ -n "$CONTAINER_MODE" ]; then
+    export PGPASSWORD
+    log "Fetching database list..."
+    if ! DATABASES=$(psql -h "$PGHOST" -p "${PGPORT:-5432}" -U "$PGUSER" -d postgres -At -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';"); then
+        log "Error: Failed to list databases. Is Postgres reachable at ${PGHOST}?"
+        exit 1
+    fi
+else
+    log "Finding Postgres container (pattern: ${CONTAINER_NAME_PATTERN})..."
+    CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=${CONTAINER_NAME_PATTERN}" | head -n 1)
+    if [ -z "$CONTAINER_ID" ]; then
+        log "Error: No running container found matching '${CONTAINER_NAME_PATTERN}'"
+        exit 1
+    fi
+    log "Found container: $CONTAINER_ID"
+    log "Fetching database list..."
+    if ! DATABASES=$(docker exec -u postgres "$CONTAINER_ID" psql -At -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';"); then
+        log "Error: Failed to list databases. Is the container healthy?"
+        exit 1
+    fi
 fi
 
 if [ -z "$DATABASES" ]; then
@@ -100,10 +113,18 @@ for DB_NAME in $DATABASES; do
 
     # 1. Dump and compress
     log "Dumping $DB_NAME..."
-    if ! docker exec -u postgres "$CONTAINER_ID" pg_dump "$DB_NAME" | gzip > "$FILE"; then
-        log "Error: Failed to dump $DB_NAME"
-        [ -f "$FILE" ] && rm -f "$FILE"
-        continue
+    if [ -n "$CONTAINER_MODE" ]; then
+        if ! pg_dump -h "$PGHOST" -p "${PGPORT:-5432}" -U "$PGUSER" "$DB_NAME" | gzip > "$FILE"; then
+            log "Error: Failed to dump $DB_NAME"
+            [ -f "$FILE" ] && rm -f "$FILE"
+            continue
+        fi
+    else
+        if ! docker exec -u postgres "$CONTAINER_ID" pg_dump "$DB_NAME" | gzip > "$FILE"; then
+            log "Error: Failed to dump $DB_NAME"
+            [ -f "$FILE" ] && rm -f "$FILE"
+            continue
+        fi
     fi
 
     # 2. Optional encryption

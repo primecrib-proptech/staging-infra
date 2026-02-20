@@ -1,66 +1,86 @@
 # PostgreSQL backup to MinIO (S3)
 
-`pg_backup.sh` dumps all non-system databases from the Postgres Docker container, optionally encrypts them with GPG, and uploads to MinIO (or any S3-compatible storage).
+`pg_backup.sh` dumps all non-system databases, optionally encrypts them with GPG, and uploads to MinIO (or any S3-compatible storage).
 
-## Requirements
+## Recommended: run inside the backup container (secrets on container, not host)
 
-- `docker` (to run `docker exec` against the Postgres container)
-- `gzip`, `gpg` (optional, only if using encryption)
-- **AWS CLI** (for S3/MinIO upload):
-  - Debian/Ubuntu: `sudo apt-get install -y awscli | sudo snap install aws-cli --classic`
-  - Or: `pip install awscli`
+The stack includes a **postgres-backup** service that runs the script inside a container. Credentials are read from Docker secrets (`/run/secrets/`), so nothing is stored in env files on the host.
 
-## Environment variables
+### Setup
 
-Set these where you run the script (e.g. in a cron file or a small wrapper script that sources `.env`).
+1. **Create the MinIO bucket**  
+   In MinIO (Console or `mc`), create a bucket named `postgres-backups` (or set `S3_BUCKET` in the service env).
+
+2. **Build the backup image** (required once; stack deploy does not build):
+   ```bash
+   docker build -t postgres-backup:latest -f postgres/Dockerfile.backup postgres/
+   ```
+
+3. **Deploy the stack** (includes `postgres-backup`):
+   ```bash
+   docker stack deploy -c docker-stack.yml <stack-name>
+   ```
+
+The backup container uses these **secrets** (already in your stack): `db_name`, `db_user`, `postgres_password`, `minio_root_password`, `postgres_backup_encryption_pass`. It connects to Postgres over the `backend` network (`PGHOST=postgres`) and uploads to MinIO at `http://minio:9000`.
+
+### Schedule
+
+Cron inside the container runs the backup **daily at 02:00 UTC**. No host cron or env file needed.
+
+### Run a backup manually
+
+```bash
+docker exec $(docker ps -q -f name=postgres-backup) /usr/local/bin/pg_backup.sh
+```
+
+---
+
+## Alternative: run on the host
+
+If you run the script on the host (e.g. host cron), you must set **environment variables** (no secrets available on the host).
+
+### Requirements
+
+- `docker` (for finding the Postgres container and `docker exec`)
+- `gzip`, `gpg` (optional, for encryption)
+- **AWS CLI**: `apt-get install -y awscli` or `pip install awscli`
+
+### Environment variables (host mode)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `S3_ENDPOINT_URL` | Yes | MinIO/S3 endpoint, e.g. `http://minio:9000` (from same host as MinIO) or `https://minio.s3.cyberstarsng.com` |
-| `S3_BUCKET` | Yes | Bucket name, e.g. `postgres-backups` |
-| `AWS_ACCESS_KEY_ID` | Yes | MinIO access key (same as MinIO root user or a dedicated backup user) |
+| `S3_ENDPOINT_URL` | Yes | e.g. `http://minio:9000` or `https://minio.s3.cyberstarsng.com` |
+| `S3_BUCKET` | Yes | e.g. `postgres-backups` |
+| `AWS_ACCESS_KEY_ID` | Yes | MinIO access key |
 | `AWS_SECRET_ACCESS_KEY` | Yes | MinIO secret key |
-| `S3_PREFIX` | No | Prefix (folder) in bucket (default: `postgres`) |
-| `BACKUP_ENCRYPTION_PASS` | No | If set, backups are encrypted with GPG before upload |
-| `BACKUP_DIR` | No | Local temp directory (default: `/var/backups/postgres`) |
+| `S3_PREFIX` | No | Prefix in bucket (default: `postgres`) |
+| `BACKUP_ENCRYPTION_PASS` | No | GPG passphrase; omit to skip encryption |
+| `BACKUP_DIR` | No | Local temp dir (default: `/var/backups/postgres`) |
 | `LOG_FILE` | No | Log path (default: `/var/log/pg_backup.log`) |
-| `POSTGRES_CONTAINER_PATTERN` | No | Docker filter name (default: `postgres`) |
-| `KEEP_LOCAL_AFTER_UPLOAD` | No | Set to `true` to keep local files after upload (default: delete) |
+| `POSTGRES_CONTAINER_PATTERN` | No | Docker filter (default: `postgres`) |
+| `KEEP_LOCAL_AFTER_UPLOAD` | No | Set to `true` to keep local files |
 
-## MinIO setup
-
-1. Create a bucket (e.g. `postgres-backups`) in MinIO (Console or `mc mb`).
-2. Use MinIO root credentials or create an access key for a dedicated backup user and set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
-3. (Optional) Configure lifecycle rules on the bucket to expire or tier old backups.
-
-## Automation (cron)
-
-Example: run daily at 2:00 AM. Use a wrapper that sets env vars:
+Example env file for host cron:
 
 ```bash
-# /etc/cron.d/pg-backup
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-
-# Load env from file (create with restricted permissions, e.g. 600)
-0 2 * * * root . /etc/postgres-backup.env && /opt/scripts/postgres/pg_backup.sh
-```
-
-Example `/etc/postgres-backup.env`:
-
-```bash
+# /etc/postgres-backup.env (chmod 600)
 export S3_ENDPOINT_URL="http://minio:9000"
 export S3_BUCKET="postgres-backups"
-export AWS_ACCESS_KEY_ID="your-minio-access-key"
-export AWS_SECRET_ACCESS_KEY="your-minio-secret-key"
-# optional:
+export AWS_ACCESS_KEY_ID="minioadmin"
+export AWS_SECRET_ACCESS_KEY="your-minio-password"
 # export BACKUP_ENCRYPTION_PASS="your-gpg-passphrase"
-# export S3_PREFIX="postgres/staging"
 ```
 
-If the script runs on the same host as Docker and MinIO is in the same Docker network, use `http://minio:9000`. If it runs elsewhere, use the public MinIO URL (e.g. `https://minio.s3.cyberstarsng.com`).
+Cron:
+
+```bash
+0 2 * * * root . /etc/postgres-backup.env && /path/to/postgres/pg_backup.sh
+```
+
+---
 
 ## Restore
 
-- Download the object from MinIO (e.g. with `aws s3 cp --endpoint-url ...` or MinIO Console).
-- If encrypted: `gpg -d backup.sql.gz.gpg | gunzip | docker exec -i <postgres_container> psql -U postgres -d your_db`.
+- Download the object from MinIO (Console or `aws s3 cp --endpoint-url ...`).
+- If encrypted:  
+  `gpg -d backup.sql.gz.gpg | gunzip | docker exec -i <postgres_container> psql -U <user> -d your_db`

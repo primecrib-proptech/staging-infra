@@ -69,8 +69,6 @@ services:
       - db_user
       - db_password
       - postgres_password
-      - minio_root_password
-      - postgres_backup_encryption_pass
     deploy:
       replicas: 1
       restart_policy:
@@ -92,6 +90,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Build image first: docker build -t postgres-backup:latest -f postgres/Dockerfile.backup postgres/
+  postgres-backup:
+    image: postgres-backup:latest
+    volumes:
+      - ./postgres/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
+    secrets:
+      - db_name
+      - db_user
+      - postgres_password
+      - minio_root_password
+      - postgres_backup_encryption_pass
+    networks:
+      - backend
+    environment:
+      - TZ=UTC
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      placement:
+        constraints:
+          - node.role == manager
 
   rabbitmq:
     image: rabbitmq:4.2.0-management
