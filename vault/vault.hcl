@@ -9,9 +9,9 @@ disable_mlock = false
 # ---------------------------
 # API / Cluster addresses
 # ---------------------------
-# UI/API should advertise the external URL clients use.
-api_addr = "https://vault.cyberstarsng.com"
-# For current single-node mode, keep cluster RPC local to avoid VIP/proxy forwarding issues.
+# For current single-node mode, keep API + cluster RPC local to avoid self-forwarding
+# through Traefik, which can trigger forwarded RPC TLS errors.
+api_addr = "https://127.0.0.1:8200"
 cluster_addr = "https://127.0.0.1:8201"
 
 # ---------------------------
