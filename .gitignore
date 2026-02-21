@@ -2,7 +2,7 @@ traefik/acme.json
 vault/rootCA.crt
 vault/vault.crt
 vault/vault.key
-vault/cert/
+#vault/cert/
 vault/data/
 vault/unseal-keys.txt
 .DS_Store

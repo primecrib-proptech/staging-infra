@@ -217,7 +217,8 @@ services:
       - vault_data:/vault/data
       - vault_logs:/vault/logs
     environment:
-      VAULT_ADDR: "http://127.0.0.1:8200"
+      VAULT_ADDR: "https://127.0.0.1:8200"
+      VAULT_SKIP_VERIFY: "true"
       UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
     secrets:
       - vault_unseal_key

@@ -212,7 +212,7 @@ http:
       loadBalancer:
         serversTransport: vaultTransport
         servers:
-          - url: "http://vault:8200"
+          - url: "https://vault:8200"
 
     prometheus-service:
       loadBalancer:
