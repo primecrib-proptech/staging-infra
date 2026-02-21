@@ -9,10 +9,9 @@ disable_mlock = false
 # ---------------------------
 # API / Cluster addresses
 # ---------------------------
-# For current single-node mode, keep API + cluster RPC local to avoid self-forwarding
-# through Traefik, which can trigger forwarded RPC TLS errors.
-api_addr = "https://vault:8200"
-cluster_addr = "https://vault:8201"
+# Single-node hotfix: keep API + cluster local to avoid self-forwarding through Traefik.
+api_addr = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 
 # ---------------------------
 # Listener Configuration
@@ -33,8 +32,10 @@ listener "tcp" {
 storage "raft" {
   path = "/vault/data"
 
-  # Keep node_id unset so Vault persists/generated unique ID per data dir.
-  # For multi-node HA, each replica must have a unique persistent data volume.
+  # Single-node hotfix: match existing raft peer identity.
+  # Without this, Vault can generate a random LocalID and fail with
+  # "not part of stable configuration" + forwarded RPC errors.
+  node_id = "vault"
 
   # Future HA join examples (enable when adding additional nodes):
   # retry_join {
