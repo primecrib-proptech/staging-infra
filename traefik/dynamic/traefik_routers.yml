@@ -211,7 +211,6 @@ http:
     vault-service:
       loadBalancer:
         serversTransport: vaultTransport
-        insecureSkipVerify: true
         servers:
           - url: "https://vault:8200"
 
@@ -273,8 +272,7 @@ http:
 
   serversTransports:
     vaultTransport:
-      tls:
-        insecureSkipVerify: true
+      insecureSkipVerify: true
 
 tcp:
   routers:
