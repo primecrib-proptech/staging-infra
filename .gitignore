@@ -8,3 +8,4 @@ vault/unseal-keys.txt
 .idea/
 traefik_basicauth
 vault/traefik_basicauth
+vault/cert/
