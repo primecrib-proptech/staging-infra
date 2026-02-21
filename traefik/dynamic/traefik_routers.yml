@@ -276,13 +276,6 @@ http:
 
 tcp:
   routers:
-    vault-tcp:
-      entryPoints:
-        - websecure
-      rule: "HostSNI(`vault.cyberstarsng.com`)"  # Required for TLS
-      service: vault-tcp
-      tls:
-        passthrough: true
     minio-tcp:
       entryPoints:
         - websecure

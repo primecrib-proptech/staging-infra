@@ -9,10 +9,10 @@ disable_mlock = false
 # ---------------------------
 # API / Cluster addresses
 # ---------------------------
-# Do not use loopback for HA. These addresses must be reachable by peers/clients.
-# Single-node today still works with this service DNS.
-api_addr = "https://vault:8200"
-cluster_addr = "https://vault:8201"
+# UI/API should advertise the external URL clients use.
+api_addr = "https://vault.cyberstarsng.com"
+# For current single-node mode, keep cluster RPC local to avoid VIP/proxy forwarding issues.
+cluster_addr = "https://127.0.0.1:8201"
 
 # ---------------------------
 # Listener Configuration
