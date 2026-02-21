@@ -32,7 +32,7 @@ certificatesResolvers:
   letsencrypt:
     acme:
       email: cyberstarsng@gmail.com
-      storage: /acme.json
+      storage: /letsencrypt/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       keyType: RSA4096
       httpChallenge:

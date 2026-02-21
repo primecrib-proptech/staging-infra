@@ -13,7 +13,8 @@ set -e
 VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 MAX_RETRIES=30
 RETRY_INTERVAL=5
-UNSEAL_KEYS_FILE="${UNSEAL_KEYS_FILE:-/vault/config/unseal-keys.txt}"
+UNSEAL_KEYS_FILE="${UNSEAL_KEYS_FILE:-/run/secrets/vault_unseal_key}"
+# UNSEAL_KEYS_FILE="${UNSEAL_KEYS_FILE:-/vault/config/unseal-keys.txt}"
 
 # Colors for output
 RED='\033[0;31m'

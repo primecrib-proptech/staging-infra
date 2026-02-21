@@ -16,7 +16,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/acme.json:/acme.json
+      - traefik_letsencrypt:/letsencrypt
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - traefik_logs:/var/log/traefik
     secrets:
@@ -96,6 +96,7 @@ services:
     image: postgres-backup:latest
     volumes:
       - ./postgres/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
+      - postgres_backup_data:/var/backups/postgres
     secrets:
       - db_name
       - db_user
@@ -106,6 +107,7 @@ services:
       - backend
     environment:
       - TZ=UTC
+      - LOG_FILE=/var/backups/postgres/pg_backup.log
     deploy:
       replicas: 1
       restart_policy:
@@ -212,12 +214,13 @@ services:
       - ./vault/cert:/vault/certs:ro
       - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
       - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
-      - ./vault/unseal-keys.txt:/vault/config/unseal-keys.txt:ro
       - vault_data:/vault/data
       - vault_logs:/vault/logs
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
-      UNSEAL_KEYS_FILE: "/vault/config/unseal-keys.txt"
+      UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
+    secrets:
+      - vault_unseal_key
     networks:
       - traefik-public
       - backend
@@ -374,6 +377,8 @@ services:
 
   redis-insight:
     image: redis/redisinsight:3.0.2
+    volumes:
+      - redisinsight_data:/data
     networks:
       - traefik-public
       - backend
@@ -545,6 +550,20 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/loki-data
+
+  postgres_backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/postgres-backup-data
+
+  redisinsight_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redisinsight-data
 
 networks:
   backend:
