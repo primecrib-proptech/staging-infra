@@ -11,8 +11,8 @@ disable_mlock = false
 # ---------------------------
 # For current single-node mode, keep API + cluster RPC local to avoid self-forwarding
 # through Traefik, which can trigger forwarded RPC TLS errors.
-api_addr = "https://127.0.0.1:8200"
-cluster_addr = "https://127.0.0.1:8201"
+api_addr = "https://vault:8200"
+cluster_addr = "https://vault:8201"
 
 # ---------------------------
 # Listener Configuration
@@ -26,6 +26,7 @@ listener "tcp" {
   tls_key_file     = "/vault/certs/vault.key"
   tls_client_ca_file = "/vault/certs/vault-ca.pem"
 }
+node_id = "vault-1" # Unique node ID for single-node mode; must be unique per node in HA mode
 
 # ---------------------------
 # Storage Configuration (Raft)
