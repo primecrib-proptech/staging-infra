@@ -26,7 +26,6 @@ listener "tcp" {
   tls_key_file     = "/vault/certs/vault.key"
   tls_client_ca_file = "/vault/certs/vault-ca.pem"
 }
-node_id = "vault-1" # Unique node ID for single-node mode; must be unique per node in HA mode
 
 # ---------------------------
 # Storage Configuration (Raft)
