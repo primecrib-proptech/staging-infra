@@ -1,0 +1,22 @@
+[ req ]
+default_bits       = 4096
+distinguished_name = req_distinguished_name
+req_extensions     = req_ext
+prompt             = no
+
+[ req_distinguished_name ]
+C  = NG
+ST = Lagos
+L  = Lagos
+O  = Cyberstarsng
+OU = Platform
+CN = vault.cyberstarsng.com
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = vault
+DNS.2 = localhost
+DNS.3 = vault.cyberstarsng.com
+IP.1  = 127.0.0.1
