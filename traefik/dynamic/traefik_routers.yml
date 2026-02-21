@@ -211,6 +211,7 @@ http:
     vault-service:
       loadBalancer:
         serversTransport: vaultTransport
+        insecureSkipVerify: true
         servers:
           - url: "https://vault:8200"
 
@@ -299,10 +300,6 @@ tcp:
         passthrough: true
 
   services:
-    vault-tcp:
-      loadBalancer:
-        servers:
-          - address: "vault:8200"
     minio-tcp:
       loadBalancer:
         servers:
