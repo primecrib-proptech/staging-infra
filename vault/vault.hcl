@@ -22,9 +22,9 @@ listener "tcp" {
   cluster_address = "0.0.0.0:8201"
 
   tls_disable = 0
-  tls_cert_file    = "./vault/cert/vault.crt"
-  tls_key_file     = "./vault/cert/vault.key"
-  tls_client_ca_file = "/vault/cert/vault-ca.pem"
+  tls_cert_file    = "/vault/certs/vault.crt"
+  tls_key_file     = "/vault/certs/vault.key"
+  tls_client_ca_file = "/vault/certs/vault-ca.pem"
 }
 
 # ---------------------------
