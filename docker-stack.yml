@@ -139,7 +139,7 @@ services:
       - backend
       - traefik-public
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: ["CMD-SHELL", "export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) && rabbitmq-diagnostics ping"]
       interval: 10s
       timeout: 5s
       retries: 5
