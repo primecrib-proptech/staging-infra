@@ -180,10 +180,13 @@ services:
     labels:
       - "traefik.enable=true"
 
+  # Redis master (single instance for now; Sentinel-ready topology)
   redis:
     image: redis:8.2-alpine
-    environment:
-      REDIS_PASSWORD_FILE: /run/secrets/redis_root_password
+    command: >
+      sh -c "exec redis-server /usr/local/etc/redis/redis.conf
+      --requirepass \"$$(cat /run/secrets/redis_root_password)\"
+      --masterauth \"$$(cat /run/secrets/redis_root_password)\""
     secrets:
       - redis_root_password
     volumes:
@@ -196,6 +199,73 @@ services:
         target: /usr/local/etc/redis/redis.conf
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+
+  # Optional replica service (disabled for now).
+  # Set deploy.replicas to >=1 when introducing replication/failover targets.
+  redis-replica:
+    image: redis:8.2-alpine
+    command: >
+      sh -c "exec redis-server /usr/local/etc/redis/redis.conf
+      --replicaof redis 6379
+      --requirepass \"$$(cat /run/secrets/redis_root_password)\"
+      --masterauth \"$$(cat /run/secrets/redis_root_password)\""
+    secrets:
+      - redis_root_password
+    volumes:
+      - redis_replica_data:/data
+    networks:
+      - backend
+    configs:
+      - source: redis_conf
+        target: /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+
+  # Redis Sentinel service (scale to 3 replicas when multiple nodes are available).
+  redis-sentinel:
+    image: redis:8.2-alpine
+    command: >
+      sh -c "REDIS_PASS=$$(cat /run/secrets/redis_root_password) &&
+      cat > /tmp/sentinel.conf <<EOF
+      port 26379
+      bind 0.0.0.0
+      protected-mode yes
+      sentinel resolve-hostnames yes
+      sentinel monitor mymaster redis 6379 1
+      sentinel auth-pass mymaster $$REDIS_PASS
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1
+      EOF
+      exec redis-server /tmp/sentinel.conf --sentinel"
+    secrets:
+      - redis_root_password
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -526,6 +596,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/redis-data
+
+  redis_replica_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redis-replica-data
 
   vault_data:
     driver: local
