@@ -401,7 +401,7 @@ services:
       retries: 3
 
   portainer:
-    image: portainer/portainer-ce:2.33.6-alpine
+    image: portainer/portainer-ce:2.33.7-alpine
     command: -H unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
