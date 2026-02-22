@@ -246,20 +246,22 @@ services:
   # Redis Sentinel service (scale to 3 replicas when multiple nodes are available).
   redis-sentinel:
     image: redis:8.2-alpine
-    command: >
-      sh -ec "REDIS_PASS=$$(cat /run/secrets/redis_root_password) &&
-      printf '%s\n' \
-      'port 26379' \
-      'bind 0.0.0.0' \
-      'protected-mode yes' \
-      'sentinel resolve-hostnames yes' \
-      'sentinel monitor mymaster redis 6379 1' \
-      \"sentinel auth-pass mymaster $$REDIS_PASS\" \
-      'sentinel down-after-milliseconds mymaster 5000' \
-      'sentinel failover-timeout mymaster 60000' \
-      'sentinel parallel-syncs mymaster 1' \
-      > /tmp/sentinel.conf &&
-      exec redis-server /tmp/sentinel.conf --sentinel"
+    command: |
+      sh -ec '
+      REDIS_PASS=$$(cat /run/secrets/redis_root_password)
+      cat > /tmp/sentinel.conf <<EOF
+      port 26379
+      bind 0.0.0.0
+      protected-mode yes
+      sentinel resolve-hostnames yes
+      sentinel monitor mymaster redis 6379 1
+      sentinel auth-pass mymaster $${REDIS_PASS}
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1
+      EOF
+      exec redis-server /tmp/sentinel.conf --sentinel
+      '
     secrets:
       - redis_root_password
     networks:
