@@ -136,6 +136,16 @@ http:
           ipStrategy:
             depth: 1
 
+    cacheStaticLong:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=31536000, immutable"
+
+    cacheNoStore:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "no-store, no-cache, must-revalidate, max-age=0"
+
 tls:
   options:
     default:

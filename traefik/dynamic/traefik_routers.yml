@@ -47,6 +47,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - securityHeaders
         - compression
         - rateLimit
@@ -63,6 +64,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheStaticLong
         - securityHeaders
         - compression
         - rateLimit
@@ -79,6 +81,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - dashboard-auth
         - securityHeaders
         - compression
@@ -96,6 +99,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - securityHeaders
         - compression
         - rateLimit
@@ -112,6 +116,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - securityHeaders
         - compression
         - rateLimit
@@ -128,6 +133,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - dashboard-auth
         - securityHeaders
         - compression
@@ -141,6 +147,7 @@ http:
         certResolver: letsencrypt
         options: default
       middlewares:
+        - cacheNoStore
         - dashboard-auth
         - securityHeaders
         - compression
@@ -268,7 +275,6 @@ http:
             name: "proptech_admin_sticky"
             secure: true
             httpOnly: true
-
 
   serversTransports:
     vaultTransport:
