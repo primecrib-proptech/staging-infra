@@ -675,6 +675,10 @@ secrets:
     external: true
   postgres_password:
     external: true
+  db_app_password:
+    external: true
+  db_ro_password:
+    external: true
   vault_root_token:
     external: true
   vault_unseal_key:

@@ -2,6 +2,8 @@
 set -eu
 
 export DB_PASSWORD=$(cat /run/secrets/db_password)
+export DB_RO_PASSWORD=$(cat /run/secrets/db_ro_password)
+export DB_APP_PASSWORD=$(cat /run/secrets/db_app_password)
 
 # Wait for PostgreSQL to be ready
 until pg_isready -U postgres; do
