@@ -43,7 +43,7 @@ http:
           frame-ancestors 'self';
           worker-src 'self' https://grafana.cyberstarsng.com blob:;
         referrerPolicy: "strict-origin-when-cross-origin"
-        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+        permissionsPolicy: "geolocation=(self), microphone=(), camera=()"
 
     frontendSecurityHeaders:
       headers:
@@ -72,7 +72,7 @@ http:
           base-uri 'self';
           frame-ancestors 'self';
         referrerPolicy: "strict-origin-when-cross-origin"
-        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+        permissionsPolicy: "geolocation=(self), microphone=(), camera=()"
 
     # Rate Limiting
     rateLimit:
