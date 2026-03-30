@@ -266,6 +266,7 @@ services:
       - redis_root_password
     networks:
       - backend
+      - traefik-public
     healthcheck:
       test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
       interval: 10s
