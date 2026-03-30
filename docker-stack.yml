@@ -253,6 +253,7 @@ services:
       port 26379
       bind 0.0.0.0
       protected-mode yes
+      requirepass $${REDIS_PASS}
       sentinel resolve-hostnames yes
       sentinel monitor mymaster redis 6379 1
       sentinel auth-pass mymaster $${REDIS_PASS}
@@ -268,7 +269,7 @@ services:
       - backend
       - traefik-public
     healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "26379", "ping" ]
+      test: [ "CMD", "sh", "-c", "redis-cli -p 26379 -a \"$$(cat /run/secrets/redis_root_password)\" ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5
