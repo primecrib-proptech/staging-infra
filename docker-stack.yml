@@ -3,7 +3,7 @@ version: "3.9"
 services:
 
   traefik:
-    image: traefik:v3.6.2
+    image: traefik:v3.6.13
     command:
       - "--configFile=/etc/traefik/traefik.yml"
     ports:
@@ -403,7 +403,7 @@ services:
       retries: 3
 
   portainer:
-    image: portainer/portainer-ce:2.33.7-alpine
+    image: portainer/portainer-ce:2.39.1-alpine
     command: -H unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
