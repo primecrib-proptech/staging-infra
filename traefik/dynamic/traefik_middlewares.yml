@@ -61,7 +61,7 @@ http:
           Server: ""
         contentSecurityPolicy: >-
           default-src 'self';
-          script-src 'self' 'wasm-unsafe-eval';
+          script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval';
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-attr 'unsafe-inline';
