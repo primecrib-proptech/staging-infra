@@ -67,6 +67,7 @@ http:
           style-src-attr 'unsafe-inline';
           img-src 'self' data: https://minio.s3.cyberstarsng.com https://minio.s3.primecrib.app https://tile.openstreetmap.org https://*.tile.openstreetmap.org;
           connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com http://localhost:3000 https://cdn.jsdelivr.net https://storage.googleapis.com;
+          worker-src 'self' blob:;
           font-src 'self' https://fonts.gstatic.com data:;
           object-src 'none';
           base-uri 'self';
