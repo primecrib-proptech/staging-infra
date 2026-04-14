@@ -154,6 +154,7 @@ http:
 
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
+      priority: 1
       entryPoints:
         - websecure
       service: proptech-core-service
@@ -166,10 +167,10 @@ http:
         - rateLimit
         - retry
         - circuitBreaker
-        - buffering
 
     proptech-core-ws:
       rule: Host(`proptech-api.cyberstarsng.com`) && PathPrefix(`/api/v1/live/ws`)
+      priority: 10
       entryPoints:
         - websecure
       service: proptech-core-service
@@ -181,6 +182,7 @@ http:
 
     proptech-gateway-service:
       rule: Host(`staging.api.primecrib.app`)
+      priority: 1
       entryPoints:
         - websecure
       service: proptech-gateway-service
@@ -193,10 +195,10 @@ http:
         - rateLimit
         - retry
         - circuitBreaker
-        - buffering
 
     proptech-gateway-ws:
       rule: Host(`staging.api.primecrib.app`) && PathPrefix(`/api/v1/live/ws`)
+      priority: 10
       entryPoints:
         - websecure
       service: proptech-gateway-service
