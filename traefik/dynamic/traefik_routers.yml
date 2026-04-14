@@ -168,6 +168,17 @@ http:
         - circuitBreaker
         - buffering
 
+    proptech-core-ws:
+      rule: Host(`proptech-api.cyberstarsng.com`) && PathPrefix(`/api/v1/live/ws`)
+      entryPoints:
+        - websecure
+      service: proptech-core-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
+
     proptech-gateway-service:
       rule: Host(`staging.api.primecrib.app`)
       entryPoints:
@@ -183,6 +194,17 @@ http:
         - retry
         - circuitBreaker
         - buffering
+
+    proptech-gateway-ws:
+      rule: Host(`staging.api.primecrib.app`) && PathPrefix(`/api/v1/live/ws`)
+      entryPoints:
+        - websecure
+      service: proptech-gateway-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - securityHeaders
 
     proptech-admin:
       rule: Host(`staging.admin.primecrib.app`)
