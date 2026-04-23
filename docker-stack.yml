@@ -532,7 +532,7 @@ services:
       # --- Security & Access ---
       IMGPROXY_KEY_FILE: /run/secrets/imgproxy_key
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
-      IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"         # Only allow images from your S3/MinIO
+      IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://,https://minio.s3.cyberstarsng.com/,https://minio.s3.cyberstarsng.com/proptech-pub/"         # Only allow images from your S3/MinIO
 
       IMGPROXY_WATERMARK_URL: "s3://proptech-pub/logo-96x96.png"
 
