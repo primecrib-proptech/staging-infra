@@ -517,8 +517,6 @@ services:
 
   imgproxy:
     image: darthsim/imgproxy:latest
-    ports:
-      - "8080"
     environment:
       # --- MinIO / S3 Configuration ---
       IMGPROXY_USE_S3: "true"
