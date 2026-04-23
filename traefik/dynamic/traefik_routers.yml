@@ -152,6 +152,20 @@ http:
         - securityHeaders
         - compression
 
+    imgproxy-dashboard:
+      rule: Host(`imgproxy.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: imgproxy-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - cacheNoStore
+        - dashboard-auth
+        - securityHeaders
+        - compression
+
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
       priority: 1
@@ -261,6 +275,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://redis-insight:5540"
+
+    imgproxy-service-service:
+      loadBalancer:
+        servers:
+          - url: "http://imgproxy:8080"
 
     proptech-core-service:
       loadBalancer:

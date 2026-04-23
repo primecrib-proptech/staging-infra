@@ -515,6 +515,60 @@ services:
       - shared-network
       - observability
 
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    ports:
+      - "8080"
+    environment:
+      # --- MinIO / S3 Configuration ---
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
+      IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
+      AWS_ACCESS_KEY_ID_FILE: "minioadmin"
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/minio_root_password
+      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
+
+      # --- Security & Access ---
+      IMGPROXY_KEY_FILE: /run/secrets/imgproxy_key
+      IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
+      IMGPROXY_ALLOWED_SOURCES: "s3://"         # Only allow images from your S3/MinIO
+
+      # Performance & Security
+      IMGPROXY_MAX_SRC_RESOLUTION: 50
+      IMGPROXY_DOWNLOAD_TIMEOUT: 10
+      IMGPROXY_CONCURRENCY: 20
+
+      # Auto-format for production speed
+      IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_AUTO_AVIF: "true"
+    secrets:
+      - imgproxy_key
+      - imgproxy_salt
+      - minio_root_password
+    networks:
+      - backend
+      - traefik-public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
@@ -702,4 +756,8 @@ secrets:
   redis_root_password:
     external: true
   postgres_backup_encryption_pass:
+    external: true
+  imgproxy_key:
+    external: true
+  imgproxy_salt:
     external: true
