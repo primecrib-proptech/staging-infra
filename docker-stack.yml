@@ -583,6 +583,8 @@ services:
 configs:
   redis_conf:
     file: ./redis/redis.conf
+  imgproxy_watermark:
+    external: true
 
 volumes:
   postgres_data:
@@ -711,13 +713,6 @@ volumes:
       o: bind
       device: /opt/containers/storages/redisinsight-data
 
-  imgproxy_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/imgproxy-data
-
 networks:
   backend:
     driver: overlay
@@ -776,8 +771,4 @@ secrets:
   imgproxy_key:
     external: true
   imgproxy_salt:
-    external: true
-
-configs:
-  imgproxy_watermark:
     external: true
