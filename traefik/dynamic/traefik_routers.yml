@@ -276,7 +276,7 @@ http:
         servers:
           - url: "http://redis-insight:5540"
 
-    imgproxy-service-service:
+    imgproxy-service:
       loadBalancer:
         servers:
           - url: "http://imgproxy:8080"
