@@ -777,3 +777,7 @@ secrets:
     external: true
   imgproxy_salt:
     external: true
+
+configs:
+  imgproxy_watermark:
+    external: true
