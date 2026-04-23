@@ -525,7 +525,7 @@ services:
       IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
       AWS_ACCESS_KEY_ID_FILE: /run/secrets/minio_access_key
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/minio_root_password
-      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
+#      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
       IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
 
       # --- Security & Access ---
