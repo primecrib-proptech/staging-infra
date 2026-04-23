@@ -533,7 +533,8 @@ services:
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
-      IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
+#      IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
+      IMGPROXY_WATERMARK_URL: s3://proptech-pub/logo-96x96.png
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
