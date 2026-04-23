@@ -550,7 +550,7 @@ services:
       - minio_root_password
     configs:
       - source: imgproxy_watermark
-        target: /watermarks/logo-96x96.png
+        target: ./imgproxy/watermarks/logo-96x96.png
 
     networks:
       - backend
