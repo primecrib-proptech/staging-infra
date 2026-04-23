@@ -528,11 +528,9 @@ services:
       IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
 
       # --- Security & Access ---
-#      IMGPROXY_KEY_FILE: "/run/secrets/imgproxy_key"
-#      IMGPROXY_SALT_FILE: "/run/secrets/imgproxy_salt"
+      IMGPROXY_KEY_FILE: "/run/secrets/imgproxy_key"
+      IMGPROXY_SALT_FILE: "/run/secrets/imgproxy_salt"
 
-      IMGPROXY_KEY: "74cbe16b31d1d04c319b3ff2d9fd5c76ac7d1e432ff3bb7e39dcc1878395759b38351f28b51749bb21a3c261792bca1d8ec0c377724079a5a8dda319e7c7afd7"
-      IMGPROXY_SALT: "b70ef674f44152135b1fa428c81bb1e4fdb861da2f0cbfbe99fc056a7cc7a4c5fbc4d3648a3b7328a0bb306283ce6af6c6c1b1420d3301230dc1050187e0703f"
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
       IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
