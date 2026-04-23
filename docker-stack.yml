@@ -534,7 +534,7 @@ services:
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
       IMGPROXY_ALLOWED_SOURCES: "s3://"         # Only allow images from your S3/MinIO
 
-      IMGPROXY_WATERMARK_URL: "s3://proptech-pub/primecrip-wm.jpeg"
+      IMGPROXY_WATERMARK_URL: "s3://proptech-pub/logo-96x96.png"
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
