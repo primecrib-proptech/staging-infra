@@ -524,14 +524,17 @@ services:
       IMGPROXY_USE_S3: "true"
       IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
       IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
-      AWS_ACCESS_KEY_ID_FILE: "minioadmin"
+      AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/minio_root_password
       IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
+      IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
 
       # --- Security & Access ---
       IMGPROXY_KEY_FILE: /run/secrets/imgproxy_key
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
       IMGPROXY_ALLOWED_SOURCES: "s3://"         # Only allow images from your S3/MinIO
+
+      IMGPROXY_WATERMARK_URL: "s3://proptech-pub/primecrip-wm.jpeg"
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
