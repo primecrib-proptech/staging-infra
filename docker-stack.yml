@@ -518,6 +518,7 @@ services:
   imgproxy:
     image: darthsim/imgproxy:latest
     environment:
+      AWS_EC2_METADATA_DISABLED: "true"
       # --- MinIO / S3 Configuration ---
       IMGPROXY_USE_S3: "true"
       IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
@@ -530,7 +531,7 @@ services:
       # --- Security & Access ---
       IMGPROXY_KEY_FILE: /run/secrets/imgproxy_key
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
-      IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://,https://minio.s3.cyberstarsng.com/,https://minio.s3.cyberstarsng.com/proptech-pub/"         # Only allow images from your S3/MinIO
+      IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
       IMGPROXY_WATERMARK_URL: "s3://proptech-pub/logo-96x96.png"
 
