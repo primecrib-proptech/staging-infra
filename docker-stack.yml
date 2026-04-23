@@ -523,7 +523,7 @@ services:
       IMGPROXY_USE_S3: "true"
       IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
       IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
-      AWS_ACCESS_KEY_ID: "minioadmin"
+      AWS_ACCESS_KEY_ID_FILE: /run/secrets/minio_access_key
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/minio_root_password
       IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
       IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
@@ -533,7 +533,7 @@ services:
       IMGPROXY_SALT_FILE: /run/secrets/imgproxy_salt
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
-      IMGPROXY_WATERMARK_URL: "s3://proptech-pub/logo-96x96.png"
+      IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
@@ -546,7 +546,10 @@ services:
     secrets:
       - imgproxy_key
       - imgproxy_salt
+      - minio_access_key
       - minio_root_password
+    volumes:
+      - ./imgproxy/watermarks:/watermarks
     networks:
       - backend
       - traefik-public
@@ -750,6 +753,8 @@ secrets:
   rabbit_erlang_cookie:
     external: true
   minio_root_password:
+    external: true
+  minio_access_key:
     external: true
   grafana_root_password:
     external: true
