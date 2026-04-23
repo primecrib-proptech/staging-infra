@@ -525,8 +525,7 @@ services:
       IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
       AWS_ACCESS_KEY_ID_FILE: /run/secrets/minio_access_key
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/minio_root_password
-#      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
-      IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
+      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
 
       # --- Security & Access ---
       IMGPROXY_KEY_FILE: /run/secrets/imgproxy_key
@@ -549,8 +548,10 @@ services:
       - imgproxy_salt
       - minio_access_key
       - minio_root_password
-    volumes:
-      - ./imgproxy/watermarks:/watermarks
+    configs:
+      - source: imgproxy_watermark
+        target: /watermarks/logo-96x96.png
+
     networks:
       - backend
       - traefik-public
@@ -709,6 +710,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/redisinsight-data
+
+  imgproxy_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/imgproxy-data
 
 networks:
   backend:
