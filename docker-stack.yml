@@ -536,7 +536,7 @@ services:
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
       IMGPROXY_DOWNLOAD_TIMEOUT: 10
-      IMGPROXY_CONCURRENCY: 20
+      IMGPROXY_WORKERS: 20
 
       # Auto-format for production speed
       IMGPROXY_AUTO_WEBP: "true"

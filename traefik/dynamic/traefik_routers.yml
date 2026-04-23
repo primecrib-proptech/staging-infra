@@ -156,7 +156,7 @@ http:
       rule: Host(`imgproxy.cyberstarsng.com`)
       entryPoints:
         - websecure
-      service: imgproxy-service
+      service: imgprclearoxy-service
       tls:
         certResolver: letsencrypt
         options: default
