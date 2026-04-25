@@ -577,7 +577,6 @@ services:
     configs:
       - source: imgproxy_watermark
         target: /watermarks/logo-96x96.png
-
     networks:
       - backend
       - traefik-public
