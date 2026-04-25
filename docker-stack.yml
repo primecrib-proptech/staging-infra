@@ -59,6 +59,7 @@ services:
       start_period: 10s
     deploy:
       replicas: 1
+      endpoint_mode: dnsrr
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -70,7 +71,6 @@ services:
         failure_action: rollback
       labels:
         - "traefik.enable=true"
-    endpoint_mode: dnsrr
 
   postgres:
     image: postgis/postgis:16-3.5
