@@ -2,10 +2,8 @@ version: "3.9"
 
 services:
 
-  traefik:
-    image: traefik:v3.6.13
-    command:
-      - "--configFile=/etc/traefik/traefik.yml"
+  haproxy:
+    image: haproxy:3.0
     ports:
       - target: 80
         published: 80
@@ -13,6 +11,33 @@ services:
       - target: 443
         published: 443
         mode: host
+    configs:
+      - source: haproxy_cfg
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - traefik-public
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  traefik:
+    image: traefik:v3.6.13
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -33,9 +58,6 @@ services:
       retries: 3
       start_period: 10s
     deploy:
-      placement:
-        constraints:
-          - node.role == manager
       replicas: 1
       restart_policy:
         condition: on-failure
@@ -48,6 +70,7 @@ services:
         failure_action: rollback
       labels:
         - "traefik.enable=true"
+    endpoint_mode: dnsrr
 
   postgres:
     image: postgis/postgis:16-3.5
@@ -517,6 +540,12 @@ services:
 
   imgproxy:
     image: darthsim/imgproxy:latest
+    command: >
+      sh -ec '
+      export IMGPROXY_KEY="$$(tr -d "\r\n" < /run/secrets/imgproxy_key)";
+      export IMGPROXY_SALT="$$(tr -d "\r\n" < /run/secrets/imgproxy_salt)";
+      exec imgproxy
+      '
     environment:
       AWS_EC2_METADATA_DISABLED: "true"
       # --- MinIO / S3 Configuration ---
@@ -528,16 +557,9 @@ services:
       IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
 
       # --- Security & Access ---
-#      IMGPROXY_KEY_FILE: "/run/secrets/imgproxy_key"
-#      IMGPROXY_SALT_FILE: "/run/secrets/imgproxy_salt"
-
-      # For testing, to be removed in production
-      IMGPROXY_KEY: "74cbe16b31d1d04c319b3ff2d9fd5c76ac7d1e432ff3bb7e39dcc1878395759b38351f28b51749bb21a3c261792bca1d8ec0c377724079a5a8dda319e7c7afd7"
-      IMGPROXY_SALT: "b70ef674f44152135b1fa428c81bb1e4fdb861da2f0cbfbe99fc056a7cc7a4c5fbc4d3648a3b7328a0bb306283ce6af6c6c1b1420d3301230dc1050187e0703f"
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
       IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
-#      IMGPROXY_WATERMARK_URL: s3://proptech-pub/logo-96x96.png
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
@@ -587,6 +609,8 @@ services:
 configs:
   redis_conf:
     file: ./redis/redis.conf
+  haproxy_cfg:
+    file: ./haproxy/haproxy.cfg
   imgproxy_watermark:
     external: true
 

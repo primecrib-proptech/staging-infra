@@ -166,6 +166,20 @@ http:
         - securityHeaders
         - compression
 
+    haproxy-stats-dashboard:
+      rule: Host(`haproxy.cyberstarsng.com`)
+      entryPoints:
+        - websecure
+      service: haproxy-stats-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - cacheNoStore
+        - dashboard-auth
+        - securityHeaders
+        - compression
+
     proptech-core-service:
       rule: Host(`proptech-api.cyberstarsng.com`)
       priority: 1
@@ -280,6 +294,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://imgproxy:8080"
+
+    haproxy-stats-service:
+      loadBalancer:
+        servers:
+          - url: "http://haproxy:8404"
 
     proptech-core-service:
       loadBalancer:
