@@ -206,8 +206,8 @@ services:
 
   minio-buckets-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    entrypoint: ["/bin/sh", "-ec"]
     command: >
-      sh -ec '
       MINIO_PASSWORD=$$(cat /run/secrets/minio_root_password);
       until mc alias set local http://minio:9000 minioadmin "$${MINIO_PASSWORD}"; do
         echo "waiting for minio...";
@@ -215,7 +215,6 @@ services:
       done;
       mc mb --ignore-existing local/tempo;
       echo "tempo bucket ensured";
-      '
     secrets:
       - minio_root_password
     networks:
@@ -788,10 +787,6 @@ volumes:
 
   tempo_data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/containers/storages/tempo-data
 
   postgres_backup_data:
     driver: local
