@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
 
+# HAProxy is used to route traffic to the Traefik service.: SET server-template traefik 10
   haproxy:
     image: haproxy:3.0
     ports:
@@ -203,6 +204,31 @@ services:
     labels:
       - "traefik.enable=true"
 
+  minio-buckets-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    command: >
+      sh -ec '
+      MINIO_PASSWORD=$$(cat /run/secrets/minio_root_password);
+      until mc alias set local http://minio:9000 minioadmin "$${MINIO_PASSWORD}"; do
+        echo "waiting for minio...";
+        sleep 3;
+      done;
+      mc mb --ignore-existing local/tempo;
+      echo "tempo bucket ensured";
+      '
+    secrets:
+      - minio_root_password
+    networks:
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+      placement:
+        constraints: [node.role == manager]
+
   # Redis master (single instance for now; Sentinel-ready topology)
   redis:
     image: redis:8.2-alpine
@@ -368,7 +394,7 @@ services:
       - traefik-public
       - shared-network
     deploy:
-      replicas: 0
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
@@ -396,7 +422,7 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - grafana_provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - backend
       - traefik-public
@@ -406,7 +432,7 @@ services:
       - grafana_root_password
       - traefik_basicauth
     deploy:
-      replicas: 0
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
@@ -504,7 +530,7 @@ services:
       - loki_data:/loki
       - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
     deploy:
-      replicas: 0
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
@@ -515,6 +541,40 @@ services:
     networks:
       - backend
       - traefik-public
+      - shared-network
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    command: >
+      sh -ec '
+      export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_root_password)";
+      exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
+      '
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_BUCKET=tempo
+      - MINIO_INSECURE=true
+    secrets:
+      - minio_root_password
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    networks:
+      - backend
       - shared-network
       - observability
 
@@ -725,6 +785,13 @@ volumes:
       type: none
       o: bind
       device: /opt/containers/storages/loki-data
+
+  tempo_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/tempo-data
 
   postgres_backup_data:
     driver: local
