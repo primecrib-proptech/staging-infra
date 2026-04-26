@@ -133,7 +133,7 @@ services:
       - TZ=UTC
       - LOG_FILE=/var/backups/postgres/pg_backup.log
     deploy:
-      replicas: 1
+      replicas: 0
       restart_policy:
         condition: on-failure
         delay: 10s
@@ -545,11 +545,10 @@ services:
 
   tempo:
     image: grafana/tempo:2.8.2
+    entrypoint: ["/bin/sh", "-ec"]
     command: >
-      sh -ec '
       export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_root_password)";
       exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
-      '
     environment:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
