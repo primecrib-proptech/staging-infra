@@ -225,9 +225,7 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
+        condition: none
       placement:
         constraints: [node.role == manager]
 
@@ -547,7 +545,7 @@ services:
       - observability
 
   tempo:
-    image: grafana/tempo:2.8.2
+    image: grafana/tempo:2.8.2-debug
     entrypoint: [""]
     command:
       - /bin/sh
