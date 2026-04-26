@@ -15,7 +15,7 @@ datasources:
     uid: loki
     type: loki
     access: proxy
-    url: http://loki:3100
+    url: http://infra_loki:3100
     jsonData:
       derivedFields:
         - name: TraceID
@@ -28,7 +28,7 @@ datasources:
     uid: tempo
     type: tempo
     access: proxy
-    url: http://tempo:3200
+    url: http://infra_tempo:3200
     editable: false
     jsonData:
       tracesToLogsV2:
