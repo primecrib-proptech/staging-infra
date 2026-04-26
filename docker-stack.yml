@@ -545,20 +545,16 @@ services:
       - observability
 
   tempo:
-    image: grafana/tempo:2.8.2-debug
-    entrypoint: [""]
+    image: grafana/tempo:2.8.2
     command:
-      - /bin/sh
-      - -ec
-      - |
-        read -r MINIO_ROOT_PASSWORD < /run/secrets/minio_root_password
-        export MINIO_ROOT_PASSWORD
-        exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
+      - "-config.file=/etc/tempo/tempo.yaml"
+      - "-config.expand-env=true"
     environment:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_BUCKET=tempo
       - MINIO_INSECURE=true
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     secrets:
       - minio_root_password
     volumes:
