@@ -206,15 +206,18 @@ services:
 
   minio-buckets-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
-    entrypoint: ["/bin/sh", "-ec"]
-    command: |
-      read -r MINIO_PASSWORD < /run/secrets/minio_root_password;
-      until mc alias set local http://minio:9000 minioadmin "$$MINIO_PASSWORD"; do
-        echo "waiting for minio...";
-        sleep 3;
-      done;
-      mc mb --ignore-existing local/tempo;
-      echo "tempo bucket ensured";
+    entrypoint: [""]
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        read -r MINIO_PASSWORD < /run/secrets/minio_root_password
+        until mc alias set local http://minio:9000 minioadmin "$$MINIO_PASSWORD"; do
+          echo "waiting for minio..."
+          sleep 3
+        done
+        mc mb --ignore-existing local/tempo
+        echo "tempo bucket ensured"
     secrets:
       - minio_root_password
     networks:
@@ -545,11 +548,14 @@ services:
 
   tempo:
     image: grafana/tempo:2.8.2
-    entrypoint: ["/bin/sh", "-ec"]
-    command: |
-      read -r MINIO_ROOT_PASSWORD < /run/secrets/minio_root_password;
-      export MINIO_ROOT_PASSWORD;
-      exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
+    entrypoint: [""]
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        read -r MINIO_ROOT_PASSWORD < /run/secrets/minio_root_password
+        export MINIO_ROOT_PASSWORD
+        exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
     environment:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
@@ -559,7 +565,7 @@ services:
       - minio_root_password
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
-      - tempo_data:/var/tempo
+      - tempo_data_v2:/var/tempo
     deploy:
       replicas: 1
       placement:
@@ -785,7 +791,7 @@ volumes:
       o: bind
       device: /opt/containers/storages/loki-data
 
-  tempo_data:
+  tempo_data_v2:
     driver: local
 
   postgres_backup_data:
