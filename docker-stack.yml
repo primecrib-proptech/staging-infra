@@ -207,8 +207,9 @@ services:
   minio-buckets-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
     entrypoint: ["/bin/sh", "-ec"]
-    command: >
-      until mc alias set local http://minio:9000 minioadmin "`tr -d '\r\n' < /run/secrets/minio_root_password`"; do
+    command: |
+      read -r MINIO_PASSWORD < /run/secrets/minio_root_password;
+      until mc alias set local http://minio:9000 minioadmin "$$MINIO_PASSWORD"; do
         echo "waiting for minio...";
         sleep 3;
       done;
@@ -545,8 +546,9 @@ services:
   tempo:
     image: grafana/tempo:2.8.2
     entrypoint: ["/bin/sh", "-ec"]
-    command: >
-      export MINIO_ROOT_PASSWORD="`tr -d '\r\n' < /run/secrets/minio_root_password`";
+    command: |
+      read -r MINIO_ROOT_PASSWORD < /run/secrets/minio_root_password;
+      export MINIO_ROOT_PASSWORD;
       exec /tempo -config.file=/etc/tempo/tempo.yaml -config.expand-env=true
     environment:
       - MINIO_ENDPOINT=minio:9000
