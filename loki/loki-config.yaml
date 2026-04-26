@@ -25,5 +25,8 @@ schema_config:
         prefix: index_
         period: 24h
 
+limits_config:
+  volume_enabled: true
+
 ruler:
   alertmanager_url: http://alertmanager:9093
