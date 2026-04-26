@@ -565,7 +565,7 @@ services:
       - minio_root_password
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
-      - tempo_data_v2:/var/tempo
+      - tempo_data:/var/tempo
     deploy:
       replicas: 1
       placement:
@@ -791,7 +791,7 @@ volumes:
       o: bind
       device: /opt/containers/storages/loki-data
 
-  tempo_data_v2:
+  tempo_data:
     driver: local
 
   postgres_backup_data:
