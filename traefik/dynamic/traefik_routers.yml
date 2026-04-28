@@ -359,7 +359,8 @@ tcp:
       rule: "HostSNI(`rabbitmq.cyberstarsng.com`)"  # Required for TLS
       service: rabbit-tcp
       tls:
-        passthrough: true
+        certResolver: letsencrypt
+        options: default
 
   services:
     minio-tcp:

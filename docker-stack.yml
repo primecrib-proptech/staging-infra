@@ -152,6 +152,7 @@ services:
       - "5672"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
+      RABBITMQ_NODENAME: rabbit@rabbitmq
     secrets:
       - rabbit_password
       - rabbit_erlang_cookie
