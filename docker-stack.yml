@@ -151,7 +151,6 @@ services:
     # Keep AMQP internal; expose externally only through Traefik TCP router.
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
-      RABBITMQ_NODENAME: rabbit@rabbitmq
     secrets:
       - rabbit_password
       - rabbit_erlang_cookie
@@ -169,8 +168,15 @@ services:
       retries: 5
     deploy:
       replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
       restart_policy:
         condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
       placement:
         constraints: [node.role == manager]
     labels:
