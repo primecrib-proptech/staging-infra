@@ -65,7 +65,7 @@ http:
           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-attr 'unsafe-inline';
           img-src 'self' data: https://minio.s3.cyberstarsng.com https://minio.s3.primecrib.app https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://imgproxy.cyberstarsng.com/;
-          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com http://localhost:3000 https://cdn.jsdelivr.net https://storage.googleapis.com https://imgproxy.cyberstarsng.com/;
+          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com http://localhost:3000 https://cdn.jsdelivr.net https://storage.googleapis.com https://imgproxy.cyberstarsng.com/ wss://proptech-api.cyberstarsng.com wss://staging.api.primecrib.app;
           worker-src 'self' blob: https://cdn.jsdelivr.net;;
           font-src 'self' https://fonts.gstatic.com data:;
           object-src 'none';
