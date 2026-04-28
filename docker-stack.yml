@@ -148,8 +148,7 @@ services:
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
              exec rabbitmq-server"
-    ports:
-      - "5672"
+    # Keep AMQP internal; expose externally only through Traefik TCP router.
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
       RABBITMQ_NODENAME: rabbit@rabbitmq
