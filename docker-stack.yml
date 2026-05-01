@@ -245,7 +245,7 @@ services:
     networks:
       - backend
     deploy:
-      replicas: 1
+      replicas: 0
       restart_policy:
         condition: none
       placement:
@@ -416,7 +416,7 @@ services:
       - traefik-public
       - shared-network
     deploy:
-      replicas: 1
+      replicas: 0
       placement:
         constraints:
           - node.role == manager
@@ -454,7 +454,7 @@ services:
       - grafana_root_password
       - traefik_basicauth
     deploy:
-      replicas: 1
+      replicas: 0
       placement:
         constraints:
           - node.role == manager
@@ -552,7 +552,7 @@ services:
       - loki_data:/loki
       - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
     deploy:
-      replicas: 1
+      replicas: 0
       placement:
         constraints:
           - node.role == manager
@@ -583,7 +583,7 @@ services:
       - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     deploy:
-      replicas: 1
+      replicas: 0
       placement:
         constraints:
           - node.role == manager
