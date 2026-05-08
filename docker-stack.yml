@@ -73,6 +73,35 @@ services:
       labels:
         - "traefik.enable=true"
 
+  portainer:
+    image: portainer/portainer-ce:2.39.2-alpine
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+
   postgres:
     image: postgis/postgis:16-3.5
     environment:
@@ -472,35 +501,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  portainer:
-    image: portainer/portainer-ce:2.39.1-alpine
-    command: -H unix:///var/run/docker.sock
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer_data:/data
-    networks:
-      - backend
-      - traefik-public
-      - shared-network
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-        reservations:
-          cpus: '0.10'
-          memory: 128M
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-      labels:
-        - "traefik.enable=true"
 
   adminer:
     image: adminer:5.4.1
