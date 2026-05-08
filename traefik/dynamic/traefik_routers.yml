@@ -243,6 +243,21 @@ http:
         - retry
         - buffering
 
+    proptech-pitch:
+      rule: Host(`primecrib.app`)
+      entryPoints:
+        - websecure
+      service: proptech-pitch-service
+      tls:
+        certResolver: letsencrypt
+        options: default
+      middlewares:
+        - frontendSecurityHeaders
+        - compression
+        - rateLimit
+        - retry
+        - buffering
+
   services:
     rabbit-service:
       loadBalancer:
@@ -337,6 +352,16 @@ http:
         sticky:
           cookie:
             name: "proptech_app_sticky"
+            secure: true
+            httpOnly: true
+
+    proptech-pitch-service:
+      loadBalancer:
+        servers:
+          - url: "http://proptech_pitch:3000"
+        sticky:
+          cookie:
+            name: "proptech_pitch_sticky"
             secure: true
             httpOnly: true
 
