@@ -1,0 +1,887 @@
+version: "3.9"
+
+services:
+
+# HAProxy is used to route traffic to the Traefik service.: SET server-template traefik 10
+  haproxy:
+    image: haproxy:3.0
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+    configs:
+      - source: haproxy_cfg
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - traefik-public
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  traefik:
+    image: traefik:v3.6.13
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - traefik_letsencrypt:/letsencrypt
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_logs:/var/log/traefik
+    secrets:
+      - traefik_basicauth
+    networks:
+      - traefik-public
+      - shared-network
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: [ "CMD", "traefik", "healthcheck", "--ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      endpoint_mode: dnsrr
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      labels:
+        - "traefik.enable=true"
+
+  portainer:
+    image: portainer/portainer-ce:2.39.2-alpine
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+
+  postgres:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/db_name
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./postgres/init.sql.template:/docker-entrypoint-initdb.d/init.sql.template:ro
+      - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - db_name
+      - db_user
+      - db_password
+      - postgres_password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Build image first: docker build -t postgres-backup:latest -f postgres/Dockerfile.backup postgres/
+  postgres-backup:
+    image: postgres-backup:latest
+    volumes:
+      - ./postgres/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
+      - postgres_backup_data:/var/backups/postgres
+    secrets:
+      - db_name
+      - db_user
+      - postgres_password
+      - minio_root_password
+      - postgres_backup_encryption_pass
+    networks:
+      - backend
+    environment:
+      - TZ=UTC
+      - LOG_FILE=/var/backups/postgres/pg_backup.log
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      placement:
+        constraints:
+          - node.role == manager
+
+  rabbitmq:
+    image: rabbitmq:4.2.0-management
+    hostname: rabbitmq
+    command: >
+      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
+             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
+             export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
+             exec rabbitmq-server"
+    # Keep AMQP internal; expose externally only through Traefik TCP router.
+    environment:
+      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+      RABBITMQ_USE_LONGNAME: "false"
+    secrets:
+      - rabbit_password
+      - rabbit_erlang_cookie
+      - traefik_basicauth
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    networks:
+      - backend
+      - traefik-public
+    healthcheck:
+      test: ["CMD-SHELL", "export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) && rabbitmq-diagnostics ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    stop_grace_period: 90s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+        window: 180s
+      placement:
+        constraints: [node.role == manager]
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    secrets:
+      - minio_root_password
+      - traefik_basicauth
+    volumes:
+      - minio_data:/data
+      - minio_config:/root/.minio
+    ports:
+      - "9000"
+    networks:
+      - backend
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+    labels:
+      - "traefik.enable=true"
+
+  minio-buckets-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    entrypoint: [""]
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        read -r MINIO_PASSWORD < /run/secrets/minio_root_password
+        until mc alias set local http://minio:9000 minioadmin "$$MINIO_PASSWORD"; do
+          echo "waiting for minio..."
+          sleep 3
+        done
+        mc mb --ignore-existing local/tempo
+        echo "tempo bucket ensured"
+    secrets:
+      - minio_root_password
+    networks:
+      - backend
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: none
+      placement:
+        constraints: [node.role == manager]
+
+  # Redis master (single instance for now; Sentinel-ready topology)
+  redis:
+    image: redis:8.2-alpine
+    command: >
+      sh -c "exec redis-server /usr/local/etc/redis/redis.conf
+      --requirepass \"$$(cat /run/secrets/redis_root_password)\"
+      --masterauth \"$$(cat /run/secrets/redis_root_password)\""
+    secrets:
+      - redis_root_password
+    volumes:
+      - redis_data:/data
+    networks:
+      - traefik-public
+      - backend
+    configs:
+      - source: redis_conf
+        target: /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+
+  # Optional replica service (disabled for now).
+  # Set deploy.replicas to >=1 when introducing replication/failover targets.
+  redis-replica:
+    image: redis:8.2-alpine
+    command: >
+      sh -c "exec redis-server /usr/local/etc/redis/redis.conf
+      --replicaof redis 6379
+      --requirepass \"$$(cat /run/secrets/redis_root_password)\"
+      --masterauth \"$$(cat /run/secrets/redis_root_password)\""
+    secrets:
+      - redis_root_password
+    volumes:
+      - redis_replica_data:/data
+    networks:
+      - backend
+    configs:
+      - source: redis_conf
+        target: /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 0
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+
+  # Redis Sentinel service (scale to 3 replicas when multiple nodes are available).
+  redis-sentinel:
+    image: redis:8.2-alpine
+    command: |
+      sh -ec '
+      REDIS_PASS=$$(cat /run/secrets/redis_root_password)
+      cat > /tmp/sentinel.conf <<EOF
+      port 26379
+      bind 0.0.0.0
+      protected-mode yes
+      requirepass $${REDIS_PASS}
+      sentinel resolve-hostnames yes
+      sentinel monitor mymaster redis 6379 1
+      sentinel auth-pass mymaster $${REDIS_PASS}
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1
+      EOF
+      exec redis-server /tmp/sentinel.conf --sentinel
+      '
+    secrets:
+      - redis_root_password
+    networks:
+      - backend
+      - traefik-public
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -p 26379 -a \"$$(cat /run/secrets/redis_root_password)\" ping | grep -q PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints: [node.role == manager]
+
+  vault:
+    image: hashicorp/vault:1.21
+    entrypoint:
+      - /vault/scripts/vault-wrapper.sh
+    volumes:
+      - ./vault/vault.hcl:/vault/config/vault.hcl:ro
+      - ./vault/cert:/vault/certs:ro
+      - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
+      - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
+      - vault_data:/vault/data
+      - vault_logs:/vault/logs
+    environment:
+      VAULT_ADDR: "https://127.0.0.1:8200"
+      VAULT_SKIP_VERIFY: "true"
+      UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
+    secrets:
+      - vault_unseal_key
+    networks:
+      - traefik-public
+      - backend
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "vault status | grep -q 'Sealed.*false'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      placement:
+        constraints:
+          - node.role == manager
+    labels:
+      - "traefik.enable=true"
+
+  prometheus:
+    image: prom/prometheus:v3.8.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+    deploy:
+      replicas: 0
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:12.1
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_root_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://grafana.localhost
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+      - observability
+    secrets:
+      - grafana_root_password
+      - traefik_basicauth
+    deploy:
+      replicas: 0
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  adminer:
+    image: adminer:5.4.1
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - traefik_basicauth
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+
+  redis-insight:
+    image: redis/redisinsight:3.0.2
+    volumes:
+      - redisinsight_data:/data
+    networks:
+      - traefik-public
+      - backend
+    secrets:
+      - traefik_basicauth
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+
+  loki:
+    image: grafana/loki:2.9.3
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    deploy:
+      replicas: 0
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    command:
+      - "-config.file=/etc/tempo/tempo.yaml"
+      - "-config.expand-env=true"
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_BUCKET=tempo
+      - MINIO_INSECURE=true
+      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/tempo_s3_credentials
+      - AWS_REGION=us-east-1
+    secrets:
+      - tempo_s3_credentials
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    deploy:
+      replicas: 0
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    networks:
+      - backend
+      - shared-network
+      - observability
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    networks:
+      - backend
+      - traefik-public
+      - shared-network
+      - observability
+
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    command: >
+      sh -ec '
+      export IMGPROXY_KEY="$$(tr -d "\r\n" < /run/secrets/imgproxy_key)";
+      export IMGPROXY_SALT="$$(tr -d "\r\n" < /run/secrets/imgproxy_salt)";
+      exec imgproxy
+      '
+    environment:
+      AWS_EC2_METADATA_DISABLED: "true"
+      # --- MinIO / S3 Configuration ---
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
+      IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
+      AWS_ACCESS_KEY_ID_FILE: "/run/secrets/minio_access_key"
+      AWS_SECRET_ACCESS_KEY_FILE: "/run/secrets/minio_root_password"
+      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
+
+      # --- Security & Access ---
+      IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
+
+      IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
+
+      # Performance & Security
+      IMGPROXY_MAX_SRC_RESOLUTION: 50
+      IMGPROXY_DOWNLOAD_TIMEOUT: 10
+      IMGPROXY_WORKERS: 20
+
+      # Auto-format for production speed
+      IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_AUTO_AVIF: "true"
+    secrets:
+      - imgproxy_key
+      - imgproxy_salt
+      - minio_access_key
+      - minio_root_password
+    configs:
+      - source: imgproxy_watermark
+        target: /watermarks/logo-96x96.png
+    networks:
+      - backend
+      - traefik-public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+
+# ────────────────────────────────
+# LOCAL PERSISTENT VOLUMES
+# ────────────────────────────────
+configs:
+  redis_conf:
+    file: ./redis/redis.conf
+  haproxy_cfg:
+    file: ./haproxy/haproxy.cfg
+  imgproxy_watermark:
+    external: true
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/postgres-data
+
+  minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/minio-data
+
+  minio_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/minio-config
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/prometheus-data
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/grafana-data
+
+  grafana_provisioning:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/grafana-provisioning
+
+  traefik_letsencrypt:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-letsencrypt-data
+
+  traefik_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-data
+
+  traefik_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/traefik-logs
+
+  rabbitmq_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/rabbitmq-data
+
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redis-data
+
+  redis_replica_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redis-replica-data
+
+  vault_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-data
+
+  vault_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-logs
+
+  portainer_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/portainer
+
+  loki_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/loki-data
+
+  tempo_data:
+    driver: local
+
+  postgres_backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/postgres-backup-data
+
+  redisinsight_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/redisinsight-data
+
+networks:
+  backend:
+    driver: overlay
+    internal: true
+  traefik-public:
+    driver: overlay
+    external: true
+  ci-network:
+    driver: overlay
+    external: false
+    driver_opts:
+      encrypted: "true"
+  shared-network:
+    driver: overlay
+    external: true
+  observability:
+    external: true
+
+secrets:
+  db_name:
+    external: true
+  db_user:
+    external: true
+  db_password:
+    external: true
+  postgres_password:
+    external: true
+  db_app_password:
+    external: true
+  db_ro_password:
+    external: true
+  vault_root_token:
+    external: true
+  vault_unseal_key:
+    external: true
+  vault_connection_url:
+    external: true
+  jwt_secret_key:
+    external: true
+  rabbit_password:
+    external: true
+  rabbit_erlang_cookie:
+    external: true
+  minio_root_password:
+    external: true
+  minio_access_key:
+    external: true
+  grafana_root_password:
+    external: true
+  traefik_basicauth:
+    external: true
+  redis_root_password:
+    external: true
+  postgres_backup_encryption_pass:
+    external: true
+  imgproxy_key:
+    external: true
+  imgproxy_salt:
+    external: true
+  tempo_s3_credentials:
+    external: true

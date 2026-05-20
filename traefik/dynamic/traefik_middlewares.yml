@@ -1,0 +1,167 @@
+# traefik_middlewares.yml
+http:
+  middlewares:
+
+    dashboard-auth:
+      basicAuth:
+        usersFile: /run/secrets/traefik_basicauth
+
+    rabbitmq-csp:
+      headers:
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src *; img-src * data:; font-src * data:;"
+    # Redirect HTTP → HTTPS
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+        port: "443"
+
+    # Security headers
+    securityHeaders:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true # to be true after certs are issued
+        frameDeny: true
+        sslRedirect: true # to be true after certs are issued
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          style-src 'self' 'unsafe-inline';
+          img-src 'self' data:;
+          connect-src 'self' wss://proptech-api.cyberstarsng.com wss://staging.api.primecrib.app;
+          font-src 'self';
+          object-src 'self';
+          frame-ancestors 'self';
+          worker-src 'self' https://grafana.cyberstarsng.com blob:;
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=(self), microphone=(self), camera=(self)"
+
+    frontendSecurityHeaders:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true # to be true after certs are issued
+        frameDeny: true
+        sslRedirect: true # to be true after certs are issued
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net;
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          style-src-attr 'unsafe-inline';
+          img-src 'self' data: https://minio.s3.cyberstarsng.com https://minio.s3.primecrib.app https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://imgproxy.cyberstarsng.com/;
+          connect-src 'self' https://proptech-api.cyberstarsng.com https://api.cyberstarsng.com https://staging.api.cyberstarsng.com https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.cyberstarsng.com http://localhost:3000 https://cdn.jsdelivr.net https://storage.googleapis.com https://imgproxy.cyberstarsng.com wss://proptech-api.cyberstarsng.com wss://staging.api.primecrib.app;
+          worker-src 'self' blob: https://cdn.jsdelivr.net;;
+          font-src 'self' https://fonts.gstatic.com data:;
+          object-src 'none';
+          base-uri 'self';
+          frame-ancestors 'self';
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=(self), microphone=(self), camera=(self)"
+
+    # Rate Limiting
+    rateLimit:
+      rateLimit:
+        average: 50
+        period: 1s
+        burst: 150
+
+    # Optional stricter rate limit for sensitive endpoints (e.g., auth)
+    strictRateLimit:
+      rateLimit:
+        average: 10
+        period: 1s
+        burst: 20
+
+    # Compression
+    compression:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+          - application/grpc
+        minResponseBodyBytes: 1024
+
+    # IP Whitelist (for dashboard)
+#    ipwhitelist:
+#      ipAllowList:
+#        sourceRange:
+#          - "127.0.0.1/32"
+#          - "45.130.104.193" #/32"  # Your trusted IP
+#        ipStrategy:
+#          depth: 1
+
+    # Retry
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"
+
+    # Circuit Breaker
+    circuitBreaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.5 || ResponseCodeRatio(500, 600, 0, 600) > 0.3"
+        checkPeriod: "10s"
+        fallbackDuration: "30s"
+        recoveryDuration: "10s"
+
+    # Buffering
+    buffering:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10MB
+        memRequestBodyBytes: 2097152   # 2MB
+        maxResponseBodyBytes: 10485760 # 10MB
+        memResponseBodyBytes: 2097152  # 2MB
+        retryExpression: "IsNetworkError() && Attempts() < 3"
+
+    # In-flight Requests
+    inflightreq:
+      inFlightReq:
+        amount: 100
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    cacheStaticLong:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=31536000, immutable"
+
+    cacheNoStore:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "no-store, no-cache, must-revalidate, max-age=0"
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      sniStrict: false
+
+    modern:
+      minVersion: VersionTLS13
+      sniStrict: false

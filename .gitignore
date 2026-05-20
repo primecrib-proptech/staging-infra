@@ -1,0 +1,10 @@
+traefik/acme.json
+vault/rootCA.crt
+vault/vault.crt
+vault/vault.key
+vault/data/
+vault/unseal-keys.txt
+.DS_Store
+.idea/
+traefik_basicauth
+vault/traefik_basicauth
