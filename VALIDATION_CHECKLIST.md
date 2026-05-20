@@ -46,7 +46,7 @@ docker network create --driver overlay observability --opt encrypted=true || tru
 docker node update --label-add vault-node-1=true MANAGER_NODE_ID
 
 # 5. Deploy the stack
-docker stack deploy --compose-file docker-stack-prod.yml production
+docker stack deploy --compose-file docker-stack.yml production
 ```
 
 ---

@@ -2,7 +2,12 @@ version: "3.9"
 
 services:
 
-# HAProxy is used to route traffic to the Traefik service.: SET server-template traefik 10
+  # ────────────────────────────────────────────
+  # INGRESS LAYER
+  # ────────────────────────────────────────────
+
+  # HAProxy: DSR load balancer for Traefik HA cluster
+  # Dynamically discovers Traefik replicas via DNS SRV
   haproxy:
     image: haproxy:3.0
     ports:
@@ -12,6 +17,9 @@ services:
       - target: 443
         published: 443
         mode: host
+      - target: 8404
+        published: 8404
+        mode: host
     configs:
       - source: haproxy_cfg
         target: /usr/local/etc/haproxy/haproxy.cfg
@@ -20,10 +28,11 @@ services:
     environment:
       - TZ=UTC
     healthcheck:
-      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg"]
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg && curl -s http://localhost:8404/stats | grep -q 'Stats'"]
       interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 10s
     deploy:
       replicas: 1
       restart_policy:
@@ -34,7 +43,24 @@ services:
       placement:
         constraints:
           - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=8404"
+        - "prometheus.io/path=/stats"
 
+  # Traefik: HA reverse proxy cluster (3 replicas)
+  # DNSRR mode for true DSR (no VIP)
   traefik:
     image: traefik:v3.6.13
     command:
@@ -59,7 +85,7 @@ services:
       retries: 3
       start_period: 10s
     deploy:
-      replicas: 1
+      replicas: 3
       endpoint_mode: dnsrr
       restart_policy:
         condition: on-failure
@@ -70,11 +96,28 @@ services:
         parallelism: 1
         delay: 10s
         failure_action: rollback
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
       labels:
-        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=8080"
+        - "prometheus.io/path=/metrics"
+        - "service.name=traefik"
+
+  # ────────────────────────────────────────────
+  # MANAGEMENT & ORCHESTRATION
+  # ────────────────────────────────────────────
 
   portainer:
     image: portainer/portainer-ce:2.39.2-alpine
+    init: true
     command: -H unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -84,9 +127,19 @@ services:
       - traefik-public
       - shared-network
     deploy:
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
       resources:
         limits:
           cpus: '0.50'
@@ -94,16 +147,19 @@ services:
         reservations:
           cpus: '0.10'
           memory: 128M
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
       labels:
         - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=9000"
+        - "service.name=portainer"
+
+  # ────────────────────────────────────────────
+  # DATA PERSISTENCE LAYER
+  # ────────────────────────────────────────────
 
   postgres:
     image: postgis/postgis:16-3.5
+    init: true
     environment:
       POSTGRES_DB_FILE: /run/secrets/db_name
       POSTGRES_USER_FILE: /run/secrets/db_user
@@ -115,7 +171,6 @@ services:
       - ./postgres/init.sql.template:/docker-entrypoint-initdb.d/init.sql.template:ro
       - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
     networks:
-      - traefik-public
       - backend
     secrets:
       - db_name
@@ -127,10 +182,15 @@ services:
       restart_policy:
         condition: on-failure
         delay: 10s
-        max_attempts: 3
+        max_attempts: 5
+        window: 120s
       placement:
         constraints:
           - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: '2'
@@ -138,15 +198,20 @@ services:
         reservations:
           cpus: '1'
           memory: 1G
+      labels:
+        - "prometheus.io/scrape=false"
+        - "service.name=postgres"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   # Build image first: docker build -t postgres-backup:latest -f postgres/Dockerfile.backup postgres/
   postgres-backup:
     image: postgres-backup:latest
+    init: true
     volumes:
       - ./postgres/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
       - postgres_backup_data:/var/backups/postgres
@@ -162,23 +227,34 @@ services:
       - TZ=UTC
       - LOG_FILE=/var/backups/postgres/pg_backup.log
     deploy:
-      replicas: 0
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 10s
+        max_attempts: 3
+        window: 180s
       placement:
         constraints:
           - node.role == manager
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      labels:
+        - "service.name=postgres-backup"
 
   rabbitmq:
     image: rabbitmq:4.2.0-management
     hostname: rabbitmq
+    init: true
     command: >
       sh -c "export RABBITMQ_DEFAULT_USER=admin &&
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
              exec rabbitmq-server"
-    # Keep AMQP internal; expose externally only through Traefik TCP router.
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
       RABBITMQ_NODENAME: rabbit@rabbitmq
@@ -186,10 +262,12 @@ services:
     secrets:
       - rabbit_password
       - rabbit_erlang_cookie
-      - traefik_basicauth
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+        mode: 0644
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     networks:
       - backend
       - traefik-public
@@ -211,12 +289,13 @@ services:
         order: stop-first
         failure_action: rollback
       restart_policy:
-        condition: any
+        condition: on-failure
         delay: 5s
-        max_attempts: 0
+        max_attempts: 5
         window: 180s
       placement:
-        constraints: [node.role == manager]
+        constraints:
+          - node.role == manager
       resources:
         limits:
           cpus: "2.0"
@@ -224,23 +303,27 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
-    labels:
-      - "traefik.enable=true"
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=15692"
+        - "prometheus.io/path=/metrics"
+        - "service.name=rabbitmq"
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    init: true
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+      MINIO_CONSOLE_ADDRESS: ":9001"
+      MINIO_BROWSER: "on"
     secrets:
       - minio_root_password
-      - traefik_basicauth
     volumes:
       - minio_data:/data
       - minio_config:/root/.minio
-    ports:
-      - "9000"
     networks:
       - backend
       - traefik-public
@@ -250,13 +333,36 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+        window: 120s
       placement:
-        constraints: [node.role == manager]
-    labels:
-      - "traefik.enable=true"
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=9000"
+        - "service.name=minio"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   minio-buckets-init:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    init: true
     entrypoint: [""]
     command:
       - /bin/sh
@@ -268,84 +374,163 @@ services:
           sleep 3
         done
         mc mb --ignore-existing local/tempo
-        echo "tempo bucket ensured"
+        mc mb --ignore-existing local/postgres-backups
+        echo "buckets ensured"
     secrets:
       - minio_root_password
     networks:
       - backend
     deploy:
-      replicas: 0
+      replicas: 1
       restart_policy:
         condition: none
       placement:
-        constraints: [node.role == manager]
+        constraints:
+          - node.role == manager
 
-  # Redis master (single instance for now; Sentinel-ready topology)
-  redis:
+  # Redis Master: single instance, Sentinel-ready topology
+  redis-master:
     image: redis:8.2-alpine
+    init: true
     command: >
       sh -c "exec redis-server /usr/local/etc/redis/redis.conf
       --requirepass \"$$(cat /run/secrets/redis_root_password)\"
       --masterauth \"$$(cat /run/secrets/redis_root_password)\""
     secrets:
       - redis_root_password
-    volumes:
-      - redis_data:/data
-    networks:
-      - traefik-public
-      - backend
     configs:
       - source: redis_conf
         target: /usr/local/etc/redis/redis.conf
+        mode: 0644
+    volumes:
+      - redis_master_data:/data
+    networks:
+      - backend
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+        window: 120s
       placement:
-        constraints: [node.role == manager]
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=6379"
+        - "service.name=redis-master"
 
-  # Optional replica service (disabled for now).
-  # Set deploy.replicas to >=1 when introducing replication/failover targets.
-  redis-replica:
+  # Redis Replicas: enable when adding standby nodes
+  redis-replica-1:
     image: redis:8.2-alpine
+    init: true
     command: >
       sh -c "exec redis-server /usr/local/etc/redis/redis.conf
-      --replicaof redis 6379
+      --replicaof redis-master 6379
       --requirepass \"$$(cat /run/secrets/redis_root_password)\"
       --masterauth \"$$(cat /run/secrets/redis_root_password)\""
     secrets:
       - redis_root_password
-    volumes:
-      - redis_replica_data:/data
-    networks:
-      - backend
     configs:
       - source: redis_conf
         target: /usr/local/etc/redis/redis.conf
+        mode: 0644
+    volumes:
+      - redis_replica_1_data:/data
+    networks:
+      - backend
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     deploy:
-      replicas: 0
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+        window: 120s
       placement:
-        constraints: [node.role == manager]
+        constraints:
+          - node.labels.redis-replica-1 == true
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=6379"
+        - "service.name=redis-replica-1"
 
-  # Redis Sentinel service (scale to 3 replicas when multiple nodes are available).
+  redis-replica-2:
+    image: redis:8.2-alpine
+    init: true
+    command: >
+      sh -c "exec redis-server /usr/local/etc/redis/redis.conf
+      --replicaof redis-master 6379
+      --requirepass \"$$(cat /run/secrets/redis_root_password)\"
+      --masterauth \"$$(cat /run/secrets/redis_root_password)\""
+    secrets:
+      - redis_root_password
+    configs:
+      - source: redis_conf
+        target: /usr/local/etc/redis/redis.conf
+        mode: 0644
+    volumes:
+      - redis_replica_2_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "redis-cli -a $$(cat /run/secrets/redis_root_password) ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.labels.redis-replica-2 == true
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=6379"
+        - "service.name=redis-replica-2"
+
+  # Redis Sentinel: HA failover manager (3 replicas, 1 per node)
   redis-sentinel:
     image: redis:8.2-alpine
+    init: true
     command: |
       sh -ec '
       REDIS_PASS=$$(cat /run/secrets/redis_root_password)
@@ -355,57 +540,77 @@ services:
       protected-mode yes
       requirepass $${REDIS_PASS}
       sentinel resolve-hostnames yes
-      sentinel monitor mymaster redis 6379 1
+      sentinel announce-hostnames yes
+      sentinel monitor mymaster redis-master 6379 2
       sentinel auth-pass mymaster $${REDIS_PASS}
       sentinel down-after-milliseconds mymaster 5000
       sentinel failover-timeout mymaster 60000
       sentinel parallel-syncs mymaster 1
+      dir /data
       EOF
       exec redis-server /tmp/sentinel.conf --sentinel
       '
     secrets:
       - redis_root_password
+    volumes:
+      - redis_sentinel_data:/data
     networks:
       - backend
-      - traefik-public
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -p 26379 -a \"$$(cat /run/secrets/redis_root_password)\" ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     deploy:
-      replicas: 1
+      replicas: 3
       restart_policy:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+        window: 120s
       placement:
-        constraints: [node.role == manager]
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=26379"
+        - "service.name=redis-sentinel"
 
-  vault:
+  # ────────────────────────────────────────────
+  # SECRETS MANAGEMENT (HA Raft)
+  # ────────────────────────────────────────────
+  vault-1:
     image: hashicorp/vault:1.21
+    init: true
     entrypoint:
       - /vault/scripts/vault-wrapper.sh
     volumes:
-      - ./vault/vault.hcl:/vault/config/vault.hcl:ro
+      - ./vault/vault-1.hcl:/vault/config/vault.hcl:ro
       - ./vault/cert:/vault/certs:ro
       - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
       - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
-      - vault_data:/vault/data
-      - vault_logs:/vault/logs
+      - vault_1_data:/vault/data
+      - vault_1_logs:/vault/logs
     environment:
-      VAULT_ADDR: "https://127.0.0.1:8200"
+      VAULT_ADDR: "https://vault-1:8200"
       VAULT_SKIP_VERIFY: "true"
       UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
     secrets:
       - vault_unseal_key
     networks:
-      - traefik-public
       - backend
+      - traefik-public
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: [ "CMD", "sh", "-c", "vault status | grep -q 'Sealed.*false'" ]
+      test: [ "CMD", "sh", "-c", "vault status 2>/dev/null | grep -q 'Sealed.*false'" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -415,6 +620,14 @@ services:
       restart_policy:
         condition: on-failure
         delay: 10s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      placement:
+        max_replicas_per_node: 1
       resources:
         limits:
           cpus: '1'
@@ -422,21 +635,140 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
-      placement:
-        constraints:
-          - node.role == manager
-    labels:
-      - "traefik.enable=true"
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=8200"
+        - "prometheus.io/path=/v1/sys/metrics"
+        - "service.name=vault-1"
 
+  vault-2:
+    image: hashicorp/vault:1.21
+    init: true
+    entrypoint:
+      - /vault/scripts/vault-wrapper.sh
+    volumes:
+      - ./vault/vault-2.hcl:/vault/config/vault.hcl:ro
+      - ./vault/cert:/vault/certs:ro
+      - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
+      - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
+      - vault_2_data:/vault/data
+      - vault_2_logs:/vault/logs
+    environment:
+      VAULT_ADDR: "https://vault-2:8200"
+      VAULT_SKIP_VERIFY: "true"
+      UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
+    secrets:
+      - vault_unseal_key
+    networks:
+      - backend
+      - traefik-public
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "vault status 2>/dev/null | grep -q 'Sealed.*false'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=8200"
+        - "prometheus.io/path=/v1/sys/metrics"
+        - "service.name=vault-2"
+
+  vault-3:
+    image: hashicorp/vault:1.21
+    init: true
+    entrypoint:
+      - /vault/scripts/vault-wrapper.sh
+    volumes:
+      - ./vault/vault-3.hcl:/vault/config/vault.hcl:ro
+      - ./vault/cert:/vault/certs:ro
+      - ./vault/auto-unseal.sh:/vault/scripts/auto-unseal.sh:ro
+      - ./vault/vault-wrapper.sh:/vault/scripts/vault-wrapper.sh:ro
+      - vault_3_data:/vault/data
+      - vault_3_logs:/vault/logs
+    environment:
+      VAULT_ADDR: "https://vault-3:8200"
+      VAULT_SKIP_VERIFY: "true"
+      UNSEAL_KEYS_FILE: "/run/secrets/vault_unseal_key"
+    secrets:
+      - vault_unseal_key
+    networks:
+      - backend
+      - traefik-public
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "vault status 2>/dev/null | grep -q 'Sealed.*false'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=8200"
+        - "prometheus.io/path=/v1/sys/metrics"
+        - "service.name=vault-3"
+
+  # ────────────────────────────────────────────
+  # OBSERVABILITY STACK
+  # ────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v3.8.0
+    init: true
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=50GB"
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -445,10 +777,19 @@ services:
       - traefik-public
       - shared-network
     deploy:
-      replicas: 0
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: '1'
@@ -458,19 +799,28 @@ services:
           memory: 512M
       labels:
         - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=9090"
+        - "prometheus.io/path=/metrics"
+        - "service.name=prometheus"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
 
   grafana:
     image: grafana/grafana:12.1
+    init: true
     environment:
       - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_root_password
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://grafana.localhost
+      - GF_SERVER_ROOT_URL=https://grafana.cyberstarsng.com
+      - GF_SERVER_PROTOCOL=https
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_DATABASE_MAX_IDLE_CONN=10
+      - GF_DATABASE_MAX_OPEN_CONN=50
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -481,12 +831,20 @@ services:
       - observability
     secrets:
       - grafana_root_password
-      - traefik_basicauth
     deploy:
-      replicas: 0
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: '1'
@@ -496,78 +854,65 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=3000"
+        - "prometheus.io/path=/metrics"
+        - "service.name=grafana"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  adminer:
-    image: adminer:5.4.1
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
-      ADMINER_DESIGN: pepa-linha
-    networks:
-      - traefik-public
-      - backend
-    secrets:
-      - traefik_basicauth
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-        max_attempts: 3
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-
-  redis-insight:
-    image: redis/redisinsight:3.0.2
-    volumes:
-      - redisinsight_data:/data
-    networks:
-      - traefik-public
-      - backend
-    secrets:
-      - traefik_basicauth
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-        max_attempts: 3
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
+      start_period: 10s
 
   loki:
     image: grafana/loki:2.9.3
+    init: true
     command: -config.file=/etc/loki/loki-config.yaml
     volumes:
       - loki_data:/loki
-      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
     deploy:
-      replicas: 0
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: "0.50"
           memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=3100"
+        - "prometheus.io/path=/metrics"
+        - "service.name=loki"
     networks:
       - backend
       - traefik-public
       - shared-network
       - observability
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   tempo:
     image: grafana/tempo:2.8.2
+    init: true
     command:
       - "-config.file=/etc/tempo/tempo.yaml"
       - "-config.expand-env=true"
@@ -583,10 +928,19 @@ services:
       - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     deploy:
-      replicas: 0
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
       placement:
         constraints:
-          - node.role == manager
+          - node.role == worker
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: "0.50"
@@ -594,33 +948,142 @@ services:
         reservations:
           cpus: "0.10"
           memory: 128M
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=3200"
+        - "prometheus.io/path=/metrics"
+        - "service.name=tempo"
     networks:
       - backend
       - shared-network
       - observability
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3200/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   promtail:
     image: grafana/promtail:2.9.3
+    init: true
     command: -config.file=/etc/promtail/config.yml
     volumes:
-      - /var/log:/var/log
+      - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
     deploy:
       mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
       resources:
         limits:
           cpus: "0.25"
           memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      labels:
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=9080"
+        - "prometheus.io/path=/metrics"
+        - "service.name=promtail"
     networks:
       - backend
       - traefik-public
       - shared-network
       - observability
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ────────────────────────────────────────────
+  # ADMIN & UTILITY TOOLS
+  # ────────────────────────────────────────────
+  adminer:
+    image: adminer:5.4.1
+    init: true
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+    networks:
+      - traefik-public
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=false"
+        - "service.name=adminer"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis-insight:
+    image: redis/redisinsight:3.0.2
+    init: true
+    volumes:
+      - redisinsight_data:/data
+    networks:
+      - traefik-public
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=false"
+        - "service.name=redis-insight"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5540/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   imgproxy:
     image: darthsim/imgproxy:latest
+    init: true
     command: >
       sh -ec '
       export IMGPROXY_KEY="$$(tr -d "\r\n" < /run/secrets/imgproxy_key)";
@@ -629,27 +1092,21 @@ services:
       '
     environment:
       AWS_EC2_METADATA_DISABLED: "true"
-      # --- MinIO / S3 Configuration ---
       IMGPROXY_USE_S3: "true"
-      IMGPROXY_S3_ENDPOINT: "http://minio:9000" # MinIO service name and port
-      IMGPROXY_S3_REGION: "us-east-1"           # MinIO usually ignores this, but it must be set
+      IMGPROXY_S3_ENDPOINT: "http://minio:9000"
+      IMGPROXY_S3_REGION: "us-east-1"
       AWS_ACCESS_KEY_ID_FILE: "/run/secrets/minio_access_key"
       AWS_SECRET_ACCESS_KEY_FILE: "/run/secrets/minio_root_password"
-      IMGPROXY_S3_USE_PATH_STYLE: "true"        # Required for MinIO
-
-      # --- Security & Access ---
+      IMGPROXY_S3_USE_PATH_STYLE: "true"
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
-
       IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
-
-      # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
       IMGPROXY_DOWNLOAD_TIMEOUT: 10
       IMGPROXY_WORKERS: 20
-
-      # Auto-format for production speed
       IMGPROXY_AUTO_WEBP: "true"
       IMGPROXY_AUTO_AVIF: "true"
+      IMGPROXY_QUALITY: "80"
+      IMGPROXY_STRIP: "true"
     secrets:
       - imgproxy_key
       - imgproxy_salt
@@ -662,12 +1119,18 @@ services:
       - backend
       - traefik-public
     deploy:
-      replicas: 1
+      replicas: 2
       update_config:
         parallelism: 1
         delay: 10s
+        failure_action: rollback
       restart_policy:
         condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        max_replicas_per_node: 1
       resources:
         limits:
           cpus: '1.0'
@@ -675,22 +1138,27 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "prometheus.io/scrape=false"
+        - "service.name=imgproxy"
     healthcheck:
-      test: ["CMD", "imgproxy", "health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-    labels:
-      - "traefik.enable=true"
+      start_period: 10s
 
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
 configs:
   redis_conf:
-    file: ./redis/redis.conf
+    file: redis/redis.conf
   haproxy_cfg:
-    file: ./haproxy/haproxy.cfg
+    file: haproxy/haproxy.cfg
+  rabbitmq_conf:
+    file: ./rabbitmq/rabbitmq.conf
   imgproxy_watermark:
     external: true
 
@@ -765,33 +1233,75 @@ volumes:
       o: bind
       device: /opt/containers/storages/rabbitmq-data
 
-  redis_data:
+  redis_master_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/redis-data
+      device: /opt/containers/storages/redis-master-data
 
-  redis_replica_data:
+  redis_replica_1_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/redis-replica-data
+      device: /opt/containers/storages/redis-replica-1-data
 
-  vault_data:
+  redis_replica_2_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/vault-data
+      device: /opt/containers/storages/redis-replica-2-data
 
-  vault_logs:
+  redis_sentinel_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/vault-logs
+      device: /opt/containers/storages/redis-sentinel-data
+
+  vault_1_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-1-data
+
+  vault_1_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-1-logs
+
+  vault_2_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-2-data
+
+  vault_2_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-2-logs
+
+  vault_3_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-3-data
+
+  vault_3_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/vault-3-logs
 
   portainer_data:
     driver: local
@@ -809,6 +1319,10 @@ volumes:
 
   tempo_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/containers/storages/tempo-data
 
   postgres_backup_data:
     driver: local
@@ -828,6 +1342,8 @@ networks:
   backend:
     driver: overlay
     internal: true
+    driver_opts:
+      encrypted: "true"
   traefik-public:
     driver: overlay
     external: true
@@ -840,6 +1356,7 @@ networks:
     driver: overlay
     external: true
   observability:
+    driver: overlay
     external: true
 
 secrets:

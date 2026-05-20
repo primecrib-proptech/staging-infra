@@ -1,4 +1,4 @@
-# traefik.yml
+# traefik.yml - Production HA Configuration
 global:
   checkNewVersion: true
   sendAnonymousUsage: false
@@ -13,15 +13,21 @@ entryPoints:
   web:
     address: ":80"
     forwardedHeaders:
-      insecure: true
+      insecure: false
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "10.0.0.0/8"
 
   websecure:
     address: ":443"
     forwardedHeaders:
-      insecure: true
+      insecure: false
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "10.0.0.0/8"
     http:
       tls:
-        options: default  # Use TLS options from dynamic config
+        options: default
 
 # Enable ping for health checks
 ping:
@@ -37,6 +43,9 @@ certificatesResolvers:
       keyType: RSA4096
       httpChallenge:
         entryPoint: web
+      dnsChallenge:
+        provider: route53
+        delayBeforeCheck: 0
 
 # Providers
 providers:
@@ -45,6 +54,7 @@ providers:
     exposedByDefault: false
     network: traefik-public
     watch: true
+    swarmMode: true
     defaultRule: "Host(`{{ normalize .Name }}.cyberstarsng.com`)"
 
   file:
@@ -53,7 +63,7 @@ providers:
 
 # Logging
 log:
-  level: INFO  # Change to DEBUG only for troubleshooting
+  level: INFO
   format: json
   filePath: "" # log to stdout; rely on Docker logging
 
@@ -74,6 +84,8 @@ accessLog:
         X-Forwarded-Host: keep
         X-Real-Ip: keep
         X-Forwarded-Proto: keep
+        Authorization: drop
+        Cookie: drop
 
 metrics:
   prometheus:

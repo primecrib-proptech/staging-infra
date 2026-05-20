@@ -121,7 +121,7 @@ sentinel monitor mymaster redis-master 6379 2
 vault server -config=/vault/config/vault.hcl
 # But services load:
 volumes:
-  - ./vault/vault-prod-1.hcl:/vault/config/vault-prod-1.hcl
+  - ./vault/vault-1.hcl:/vault/config/vault-1.hcl
 # → File not found, Vault fails to start
 ```
 
@@ -129,7 +129,7 @@ volumes:
 ```bash
 # NEW: Mount prod config as vault.hcl
 volumes:
-  - ./vault/vault-prod-1.hcl:/vault/config/vault.hcl
+  - ./vault/vault-1.hcl:/vault/config/vault.hcl
 # + Correct node_id per instance
 ```
 

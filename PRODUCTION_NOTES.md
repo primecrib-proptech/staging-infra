@@ -141,7 +141,7 @@ docker config create imgproxy_watermark ./imgproxy/watermark/logo-96x96.png
 
 ### 6. Deploy Stack
 ```bash
-docker stack deploy --compose-file docker-stack-prod.yml production
+docker stack deploy --compose-file docker-stack.yml production
 ```
 
 ### 7. Verify Deployment
