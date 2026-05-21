@@ -1,0 +1,127 @@
+# Staging app routes — from traefik_routers.yml
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gateway-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.api.primecrib.app`)
+      kind: Rule
+      services:
+        - name: gateway-service
+          namespace: apps-staging
+          port: 8008
+          sticky:
+            cookie:
+              name: proptech_gateway_sticky
+              secure: true
+              httpOnly: true
+      middlewares:
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-app-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.primecrib.app`)
+      kind: Rule
+      services:
+        - name: primecrib-app
+          namespace: apps-staging
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-admin-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.admin.primecrib.app`)
+      kind: Rule
+      services:
+        - name: primecrib-admin
+          namespace: apps-staging
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-pitch-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`primecrib.app`) || Host(`www.primecrib.app`)
+      kind: Rule
+      services:
+        - name: primecrib-pitch
+          namespace: apps-staging
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: proptech-core-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`proptech-api.cyberstarsng.com`)
+      kind: Rule
+      priority: 1
+      services:
+        - name: proptech-core-service
+          namespace: apps-staging
+          port: 8081
+          sticky:
+            cookie:
+              name: proptech_sticky
+              secure: true
+              httpOnly: true
+      middlewares:
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt

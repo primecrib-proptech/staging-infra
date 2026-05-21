@@ -541,4 +541,65 @@ docker exec $(docker ps -q -f label=com.docker.swarm.service.name=production_tra
 **Validated By**: _______________  
 **Sign-Off**: _______________
 
+---
+
+## Kubernetes validation (GitOps)
+
+After syncing [kubernetes/](./kubernetes/) via Argo CD:
+
+### Cluster bootstrap
+- [ ] Namespaces exist: `ingress`, `platform-data`, `platform-tools`, `observability`, `apps-staging`
+- [ ] MetalLB pool assigned; Traefik Service has EXTERNAL-IP
+- [ ] cert-manager ClusterIssuer `letsencrypt-prod` Ready
+- [ ] Longhorn volumes bound for stateful pods
+
+### Platform-data
+```bash
+kubectl get cluster -n platform-data proptech-pg
+kubectl get redisreplication,redissentinel -n platform-data
+kubectl get rabbitmqcluster -n platform-data
+kubectl get tenant -n platform-data
+kubectl exec -n platform-data vault-0 -- vault status
+```
+- [ ] CNPG cluster 3/3 instances healthy
+- [ ] Redis Sentinel failover test (delete master pod)
+- [ ] RabbitMQ 3-node cluster `kubectl exec ... rabbitmq-diagnostics ping`
+- [ ] MinIO buckets: tempo, postgres-backups, proptech-pub
+
+### Observability
+```bash
+kubectl get pods -n observability
+kubectl port-forward -n observability svc/kube-prometheus-prometheus 9090:9090
+```
+- [ ] Prometheus targets UP for apps (ServiceMonitors)
+- [ ] Grafana datasources: Prometheus, Loki, Tempo
+- [ ] Fluent Bit pods Running on all nodes
+- [ ] Tempo traces visible in Grafana
+
+### Ingress
+```bash
+kubectl get ingressroute -n ingress
+curl -I https://staging.api.primecrib.app
+curl -I https://grafana.cyberstarsng.com
+```
+- [ ] TLS certificates issued (cert-manager / Traefik ACME)
+- [ ] Staging app routes return 200
+
+### Applications (apps-staging)
+```bash
+kubectl get deploy,hpa,pdb -n apps-staging
+kubectl logs -n apps-staging deploy/gateway-service --tail=50
+kubectl logs -n apps-staging deploy/proptech-core-service --tail=50
+```
+- [ ] All Deployments Available
+- [ ] Readiness probes passing
+- [ ] ExternalSecrets synced (`kubectl get externalsecret -A`)
+
+### GitOps CI
+- [ ] Workflow `deploy_target: kubernetes` bumps `primecrib-gitops/apps/*/overlays/*`
+- [ ] Trivy scan passes (no CRITICAL)
+- [ ] Argo CD auto-sync deploys new image tag
+
+See [kubernetes/MIGRATION.md](./kubernetes/MIGRATION.md) for cutover steps.
+
 

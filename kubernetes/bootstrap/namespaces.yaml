@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress
+  labels:
+    primecrib.io/layer: ingress
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-data
+  labels:
+    primecrib.io/layer: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-tools
+  labels:
+    primecrib.io/layer: tools
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    primecrib.io/layer: observability
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps-staging
+  labels:
+    primecrib.io/environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps-prod
+  labels:
+    primecrib.io/environment: production

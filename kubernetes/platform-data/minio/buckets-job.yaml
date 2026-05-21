@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-buckets-init
+  namespace: platform-data
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              until mc alias set local http://minio.platform-data.svc:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
+                echo "waiting for minio..."
+                sleep 3
+              done
+              mc mb --ignore-existing local/tempo
+              mc mb --ignore-existing local/postgres-backups
+              mc mb --ignore-existing local/proptech-pub
+              echo "buckets ensured"
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: ACCESS_KEY_ID
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: SECRET_ACCESS_KEY

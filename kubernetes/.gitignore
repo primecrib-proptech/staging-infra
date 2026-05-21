@@ -1,0 +1,8 @@
+.secrets/
+*.key
+*.pem
+vault/cert/*.key
+vault/cert/*.pem
+!vault/cert/openssl-vault.cnf
+!vault/cert/*.csr
+!vault/cert/*.srl

@@ -1,0 +1,20 @@
+# Install MetalLB operator via Helm (Argo Application) first.
+# This L2 pool replaces HAProxy VIP for Traefik ingress.
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: primecrib-ingress-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    # PATCH: set your public or private VIP range
+    - 10.0.0.100/32
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: primecrib-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - primecrib-ingress-pool

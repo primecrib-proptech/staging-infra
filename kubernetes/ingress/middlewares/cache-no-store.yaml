@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cache-no-store
+  namespace: ingress
+spec:
+  headers:
+    customResponseHeaders:
+      Cache-Control: "no-store, no-cache, must-revalidate, max-age=0"

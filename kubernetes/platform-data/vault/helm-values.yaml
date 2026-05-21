@@ -1,0 +1,63 @@
+# hashicorp/vault Helm values — HA Raft (vault-1/2/3 from staging-infra)
+global:
+  enabled: true
+  tlsDisable: false
+
+server:
+  enabled: true
+  image:
+    repository: hashicorp/vault
+    tag: "1.21"
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+        disable_mlock = false
+        listener "tcp" {
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          tls_disable = 0
+          tls_cert_file = "/vault/userconfig/vault-tls/vault.crt"
+          tls_key_file = "/vault/userconfig/vault-tls/vault.key"
+          tls_client_ca_file = "/vault/userconfig/vault-tls/vault-ca.pem"
+        }
+        storage "raft" {
+          path = "/vault/data"
+        }
+        service_registration "kubernetes" {}
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    storageClass: longhorn
+  auditStorage:
+    enabled: true
+    size: 5Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      cpu: 500m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  extraVolumes:
+    - type: secret
+      name: vault-tls
+  affinity: |
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: vault
+            topologyKey: kubernetes.io/hostname
+  ingress:
+    enabled: false
+
+ui:
+  enabled: true

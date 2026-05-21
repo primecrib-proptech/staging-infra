@@ -1,0 +1,35 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: proptech-redis
+  namespace: platform-data
+spec:
+  clusterSize: 3
+  kubernetesConfig:
+    image: redis:8.2-alpine
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 3Gi
+    redisSecret:
+      name: redis-credentials
+      key: password
+  redisExporter:
+    enabled: true
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: longhorn
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+  redisConfig:
+    additionalRedisConfig: |
+      appendonly yes
+      maxmemory 2gb
+      maxmemory-policy allkeys-lru

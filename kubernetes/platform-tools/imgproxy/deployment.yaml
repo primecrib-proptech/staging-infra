@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imgproxy
+  namespace: platform-tools
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: imgproxy
+  template:
+    metadata:
+      labels:
+        app: imgproxy
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: imgproxy
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: imgproxy
+          image: darthsim/imgproxy:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: IMGPROXY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: imgproxy-secrets
+                  key: IMGPROXY_KEY
+            - name: IMGPROXY_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: imgproxy-secrets
+                  key: IMGPROXY_SALT
+            - name: IMGPROXY_USE_S3
+              value: "true"
+            - name: IMGPROXY_S3_ENDPOINT
+              value: "http://minio.platform-data.svc:9000"
+            - name: IMGPROXY_S3_REGION
+              value: us-east-1
+            - name: IMGPROXY_S3_USE_PATH_STYLE
+              value: "true"
+            - name: IMGPROXY_ALLOWED_SOURCES
+              value: "s3://proptech-pub/,s3://"
+            - name: IMGPROXY_AUTO_WEBP
+              value: "true"
+            - name: IMGPROXY_QUALITY
+              value: "80"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15

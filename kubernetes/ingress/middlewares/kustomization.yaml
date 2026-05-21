@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - dashboard-auth.yaml
+  - security-headers.yaml
+  - frontend-security-headers.yaml
+  - rate-limit.yaml
+  - compression.yaml
+  - retry.yaml
+  - circuit-breaker.yaml
+  - buffering.yaml
+  - cache-static-long.yaml
+  - cache-no-store.yaml
+  - rabbitmq-csp.yaml
+  - redirect-https.yaml

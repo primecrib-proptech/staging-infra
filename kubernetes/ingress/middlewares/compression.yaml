@@ -1,0 +1,11 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: compression
+  namespace: ingress
+spec:
+  compress:
+    excludedContentTypes:
+      - text/event-stream
+      - application/grpc
+    minResponseBodyBytes: 1024

@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - servicemonitors-apps.yaml
+
+# Helm chart deployed via Argo CD Application (see primecrib-gitops)

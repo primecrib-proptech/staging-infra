@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: proptech-core-service
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - apps-staging
+      - apps-prod
+  selector:
+    matchLabels:
+      app: proptech-core-service
+  endpoints:
+    - port: http
+      path: /api/v1/actuator/prometheus
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gateway-service
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - apps-staging
+      - apps-prod
+  selector:
+    matchLabels:
+      app: gateway-service
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s

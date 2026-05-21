@@ -1,0 +1,39 @@
+# K8s service DNS — replaces Swarm names (infra_loki, etc.)
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://kube-prometheus-prometheus.observability.svc:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki.observability.svc:3100
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: "traceId=(\\w+)"
+          datasourceUid: tempo
+          url: "$${__value.raw}"
+    editable: false
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo.observability.svc:3200
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-2m"
+        spanEndTimeShift: "2m"
+        filterByTraceID: true
+        tags:
+          - key: service
+            value: service

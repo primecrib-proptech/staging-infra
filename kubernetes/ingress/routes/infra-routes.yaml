@@ -1,0 +1,209 @@
+# Infra dashboards — ported from traefik/dynamic/traefik_routers.yml
+# Services in platform-data / observability / platform-tools namespaces
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`grafana.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: kube-prometheus-grafana
+          namespace: observability
+          port: 80
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`prometheus.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: kube-prometheus-prometheus
+          namespace: observability
+          port: 9090
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vault
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`vault.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: vault
+          namespace: platform-data
+          port: 8200
+          scheme: https
+          serversTransport: vault-transport
+      middlewares:
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: vault-transport
+  namespace: ingress
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rabbitmq
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`rabbit.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: proptech-rabbitmq
+          namespace: platform-data
+          port: 15672
+      middlewares:
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+        - name: rabbitmq-csp
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: minio-console
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`minio.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: minio-console
+          namespace: platform-data
+          port: 9001
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: minio-s3
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`minio.s3.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: minio
+          namespace: platform-data
+          port: 9000
+      middlewares:
+        - name: cache-static-long
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: imgproxy
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`imgproxy.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: imgproxy
+          namespace: platform-tools
+          port: 8080
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: adminer
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`adminer.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: adminer
+          namespace: platform-tools
+          port: 8080
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: redis-insight
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`redis-insight.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: redis-insight
+          namespace: platform-tools
+          port: 5540
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt

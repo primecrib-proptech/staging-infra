@@ -1,0 +1,61 @@
+# kube-prometheus-stack — retention from docker-stack prometheus
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    retentionSize: 50GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 60Gi
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    additionalScrapeConfigs:
+      - job_name: proptech-core-service
+        metrics_path: /api/v1/actuator/prometheus
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: [apps-staging, apps-prod]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            regex: proptech-core-service
+            action: keep
+      - job_name: proptech-gateway-service
+        metrics_path: /actuator/prometheus
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: [apps-staging, apps-prod]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            regex: gateway-service
+            action: keep
+
+grafana:
+  enabled: true
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  grafana.ini:
+    server:
+      root_url: https://grafana.cyberstarsng.com
+  persistence:
+    enabled: true
+    storageClassName: longhorn
+    size: 10Gi
+  sidecar:
+    dashboards:
+      enabled: true
+    datasources:
+      enabled: false
+
+alertmanager:
+  enabled: true
+
+defaultRules:
+  create: true

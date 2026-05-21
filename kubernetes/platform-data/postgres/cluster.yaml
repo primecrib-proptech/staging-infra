@@ -1,0 +1,57 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: proptech-pg
+  namespace: platform-data
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgis:16-3.5
+  primaryUpdateStrategy: unsupervised
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: 512MB
+      effective_cache_size: 3GB
+      work_mem: 32MB
+      wal_level: replica
+      max_wal_size: 2GB
+      min_wal_size: 512MB
+  bootstrap:
+    initdb:
+      database: proptechdb
+      owner: proptech
+      secret:
+        name: proptech-pg-credentials
+      postInitSQL:
+        - CREATE DATABASE quartzdb;
+  storage:
+    size: 100Gi
+    storageClass: longhorn
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://postgres-backups/
+      endpointURL: http://minio.platform-data.svc:9000
+      s3Credentials:
+        accessKeyId:
+          name: minio-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: minio-credentials
+          key: SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+  monitoring:
+    enablePodMonitor: true
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+  resources:
+    requests:
+      cpu: "1"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+# Credentials: provisioned by ExternalSecret proptech-pg-credentials (platform-data/external-secrets/)

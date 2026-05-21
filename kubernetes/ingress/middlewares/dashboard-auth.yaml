@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: dashboard-auth
+  namespace: ingress
+spec:
+  basicAuth:
+    secret: traefik-basicauth
+    removeHeader: true

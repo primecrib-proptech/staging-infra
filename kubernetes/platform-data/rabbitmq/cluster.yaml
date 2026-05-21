@@ -1,0 +1,58 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: proptech-rabbitmq
+  namespace: platform-data
+spec:
+  replicas: 3
+  image: rabbitmq:4.2.0-management
+  rabbitmq:
+    additionalConfig: |
+      loopback_users.guest = false
+      listeners.tcp.default = 5672
+      management.listener.port = 15672
+      prometheus.tcp.port = 15692
+      cluster_partition_handling = pause_minority
+      vm_memory_high_watermark.relative = 0.6
+  persistence:
+    storageClassName: longhorn
+    storage: 20Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [proptech-rabbitmq]
+            topologyKey: kubernetes.io/hostname
+  secretBackend:
+    externalSecret:
+      name: rabbitmq-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proptech-rabbitmq
+  namespace: platform-data
+  labels:
+    app.kubernetes.io/name: proptech-rabbitmq
+spec:
+  ports:
+    - name: amqp
+      port: 5672
+    - name: management
+      port: 15672
+    - name: prometheus
+      port: 15692
+  selector:
+    app.kubernetes.io/name: proptech-rabbitmq
