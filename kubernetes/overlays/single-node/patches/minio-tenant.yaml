@@ -1,0 +1,14 @@
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: proptech-minio
+  namespace: platform-data
+spec:
+  pools:
+    - servers: 1
+      volumesPerServer: 1
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 30Gi

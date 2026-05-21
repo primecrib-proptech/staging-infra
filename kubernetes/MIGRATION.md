@@ -4,7 +4,9 @@ Migrate from [docker-stack.yml](../docker-stack.yml) to manifests in this direct
 
 ## Phase 0: Cluster bootstrap
 
-1. Install RKE2 on 3 control-plane + 3 worker nodes ([bootstrap/rke2-prep.sh](./bootstrap/rke2-prep.sh)).
+Follow **[KUBERNETES_VPS_SETUP.md](./KUBERNETES_VPS_SETUP.md)** for full VPS install steps (staging 1 VPS or production 3 VPS).
+
+1. Install RKE2 ([scripts/install-rke2-staging.sh](./scripts/install-rke2-staging.sh) for single-node staging).
 2. Install Cilium, Longhorn (default StorageClass).
 3. Install Argo CD; apply [primecrib-gitops/bootstrap/root-application.yaml](../../../primecrib-gitops/bootstrap/root-application.yaml).
 4. Ensure GitHub repos exist: `cyberstarsng/primecrib-gitops`, `cyberstarsng/staging-infra` (Argo `repoURL` values are preconfigured).

@@ -5,3 +5,4 @@ resources:
   - namespaces.yaml
   - network-policies.yaml
   - metallb.yaml
+  - rbac.yaml

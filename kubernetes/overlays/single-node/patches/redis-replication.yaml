@@ -1,0 +1,7 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: proptech-redis
+  namespace: platform-data
+spec:
+  clusterSize: 1

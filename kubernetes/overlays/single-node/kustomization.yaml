@@ -1,0 +1,16 @@
+# Single-node staging overlay — use on 1 VPS clusters only.
+# Production (3+ nodes) should use kubernetes/platform-data directly.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: platform-data
+
+resources:
+  - ../../platform-data
+
+patches:
+  - path: patches/postgres-cluster.yaml
+  - path: patches/redis-replication.yaml
+  - path: patches/redis-sentinel.yaml
+  - path: patches/rabbitmq-cluster.yaml
+  - path: patches/minio-tenant.yaml

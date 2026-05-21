@@ -3,5 +3,6 @@ kind: Kustomization
 
 resources:
   - servicemonitors-apps.yaml
+  - alert-rules.yaml
 
 # Helm chart deployed via Argo CD Application (see primecrib-gitops)

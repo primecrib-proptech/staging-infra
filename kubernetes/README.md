@@ -1,5 +1,7 @@
 # Kubernetes Platform (ported from staging-infra)
 
+**Start here:** [KUBERNETES_VPS_SETUP.md](./KUBERNETES_VPS_SETUP.md) — install RKE2 on your VPS (staging 1 node, production 3+ nodes).
+
 This directory is the Kubernetes equivalent of [docker-stack.yml](../docker-stack.yml). Config values are sourced from sibling folders (`traefik/`, `prometheus/`, `vault/`, etc.).
 
 ## Prerequisites
@@ -8,7 +10,9 @@ This directory is the Kubernetes equivalent of [docker-stack.yml](../docker-stac
 - Cilium CNI
 - Longhorn CSI (default StorageClass)
 - MetalLB L2 pool for ingress VIP
-- Argo CD installed (see [primecrib-gitops](../../../primecrib-gitops))
+- Argo CD installed (see [primecrib-gitops](https://github.com/cyberstarsng/primecrib-gitops))
+
+**Git branch:** push this directory on the `kubernetes` branch of `cyberstarsng/staging-infra`. Argo CD uses `targetRevision: kubernetes`.
 
 ## Swarm → Kubernetes mapping
 
@@ -58,3 +62,7 @@ kubectl apply -k kubernetes/ingress/
 ```
 
 See [MIGRATION.md](./MIGRATION.md) for cutover from Docker Swarm.
+
+## Single-node staging overlay
+
+For **1 VPS** clusters, use [overlays/single-node](./overlays/single-node/) (reduced replica counts). Argo CD `platform-data` on staging points to this path by default.

@@ -1,0 +1,7 @@
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisSentinel
+metadata:
+  name: proptech-redis-sentinel
+  namespace: platform-data
+spec:
+  clusterSize: 1

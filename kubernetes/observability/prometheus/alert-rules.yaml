@@ -1,0 +1,71 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: primecrib-platform-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: primecrib.platform
+      rules:
+        - alert: PostgresClusterDown
+          expr: cnpg_collector_up{cluster="proptech-pg"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: CloudNativePG cluster proptech-pg is down
+        - alert: PostgresReplicationLag
+          expr: cnpg_pg_replication_lag{cluster="proptech-pg"} > 30
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Postgres replication lag exceeds 30s
+        - alert: RedisReplicationUnhealthy
+          expr: redis_operator_replication_healthy == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Redis replication unhealthy
+        - alert: RabbitMQClusterUnready
+          expr: rabbitmq_cluster_ready == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: RabbitMQ cluster not ready
+        - alert: VaultSealed
+          expr: vault_core_unsealed == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Vault instance is sealed
+    - name: primecrib.apps
+      rules:
+        - alert: GatewayHighErrorRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{job="gateway-service",status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count{job="gateway-service"}[5m])) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Gateway 5xx rate above 5%
+        - alert: CoreServiceDown
+          expr: up{job="proptech-core-service"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: proptech-core-service scrape target down
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace=~"apps-.*"}[15m]) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Pod restarting in apps namespace
