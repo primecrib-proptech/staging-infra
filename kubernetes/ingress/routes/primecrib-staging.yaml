@@ -3,12 +3,41 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: gateway-staging
+  name: proptech-core-staging
   namespace: ingress
 spec:
   entryPoints: [websecure]
   routes:
     - match: Host(`staging.api.primecrib.app`)
+      kind: Rule
+      services:
+        - name: proptech-core-service
+          namespace: apps-staging
+          port: 8081
+          sticky:
+            cookie:
+              name: proptech_sticky
+              secure: true
+              httpOnly: true
+      middlewares:
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gateway-staging
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.route.primecrib.app`)
       kind: Rule
       services:
         - name: gateway-service
@@ -96,32 +125,3 @@ spec:
   tls:
     certResolver: letsencrypt
 ---
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: proptech-core-staging
-  namespace: ingress
-spec:
-  entryPoints: [websecure]
-  routes:
-    - match: Host(`proptech-api.cyberstarsng.com`)
-      kind: Rule
-      priority: 1
-      services:
-        - name: proptech-core-service
-          namespace: apps-staging
-          port: 8081
-          sticky:
-            cookie:
-              name: proptech_sticky
-              secure: true
-              httpOnly: true
-      middlewares:
-        - name: security-headers
-        - name: compression
-        - name: rate-limit
-        - name: retry
-        - name: circuit-breaker
-        - name: buffering
-  tls:
-    certResolver: letsencrypt

@@ -17,6 +17,6 @@ spec:
     customResponseHeaders:
       X-Powered-By: ""
       Server: ""
-    contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss://proptech-api.cyberstarsng.com wss://staging.api.primecrib.app; font-src 'self'; object-src 'self'; frame-ancestors 'self'; worker-src 'self' https://grafana.cyberstarsng.com blob:;"
+    contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss://api.cyberstarsng.com wss://staging.api.primecrib.app;  wss://route.cyberstarsng.com wss://staging.route.primecrib.app; font-src 'self'; object-src 'self'; frame-ancestors 'self'; worker-src 'self' https://grafana.primecrib.app https://staging.grafana.primecrib.app blob:;"
     referrerPolicy: strict-origin-when-cross-origin
     permissionsPolicy: "geolocation=(self), microphone=(self), camera=(self)"

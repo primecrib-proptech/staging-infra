@@ -43,7 +43,7 @@ grafana:
     passwordKey: admin-password
   grafana.ini:
     server:
-      root_url: https://grafana.cyberstarsng.com
+      root_url: https://grafana.primecrib.app
   persistence:
     enabled: true
     storageClassName: longhorn

@@ -7,7 +7,7 @@
 # The hostname pattern is:
 #   Staging:     <displayName>.staging.primecrib.app  (e.g., api.staging.primecrib.app)
 #   Production:  <displayName>.primecrib.app          (e.g., api.primecrib.app)
-#   Infra:       <displayName>.cyberstarsng.com       (unchanged)
+#   Infra:       <displayName>.primecrib.app       (unchanged)
 #
 # Usage: This is processed by Kustomize configMapGenerator + strategic merge patches
 
@@ -15,7 +15,7 @@
 # INFRASTRUCTURE ROUTES
 # These routes are environment-independent (shared dashboards/tools)
 #
-# Pattern: <service>.cyberstarsng.com
+# Pattern: <service>.primecrib.app
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -25,7 +25,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`grafana.cyberstarsng.com`)
+    - match: Host(`grafana.primecrib.app`)
       kind: Rule
       services:
         - name: kube-prometheus-grafana
@@ -52,7 +52,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`prometheus.cyberstarsng.com`)
+    - match: Host(`prometheus.primecrib.app`)
       kind: Rule
       services:
         - name: kube-prometheus-prometheus
@@ -76,7 +76,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`vault.cyberstarsng.com`)
+    - match: Host(`vault.primecrib.app`)
       kind: Rule
       services:
         - name: vault
@@ -107,7 +107,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`rabbit.cyberstarsng.com`)
+    - match: Host(`rabbitmq.primecrib.app`)
       kind: Rule
       services:
         - name: proptech-rabbitmq
@@ -131,7 +131,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`minio.cyberstarsng.com`)
+    - match: Host(`minio.primecrib.app`)
       kind: Rule
       services:
         - name: minio-console
@@ -153,7 +153,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`minio.s3.cyberstarsng.com`)
+    - match: Host(`minio.s3.primecrib.app`)
       kind: Rule
       services:
         - name: minio
@@ -176,7 +176,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`imgproxy.cyberstarsng.com`)
+    - match: Host(`imgproxy.primecrib.app`)
       kind: Rule
       services:
         - name: imgproxy
@@ -198,7 +198,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`adminer.cyberstarsng.com`)
+    - match: Host(`adminer.primecrib.app`)
       kind: Rule
       services:
         - name: adminer
@@ -220,7 +220,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`redis-insight.cyberstarsng.com`)
+    - match: Host(`redis-insight.primecrib.app`)
       kind: Rule
       services:
         - name: redis-insight
@@ -234,6 +234,13 @@ spec:
     certResolver: letsencrypt
 
 ---
+# APPLICATION ROUTES (ENVIRONMENT-AWARE)
+# These are substituted by overlays with correct hostnames and namespaces
+
+# STAGING ROUTES (Applied when ENVIRONMENT=staging)
+# Pattern: <displayName>.staging.primecrib.app
+
+---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -242,7 +249,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`proptech-api.cyberstarsng.com`)
+    - match: Host(`api.primecrib.app`)
       kind: Rule
       priority: 1
       services:
@@ -265,11 +272,6 @@ spec:
     certResolver: letsencrypt
 
 ---
-# APPLICATION ROUTES (ENVIRONMENT-AWARE)
-# These are substituted by overlays with correct hostnames and namespaces
-
-# STAGING ROUTES (Applied when ENVIRONMENT=staging)
-# Pattern: <displayName>.staging.primecrib.app
 
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -281,7 +283,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`staging.api.primecrib.app`)  # Will be patched for production
+    - match: Host(`staging.route.primecrib.app`)  # Will be patched for production
       kind: Rule
       services:
         - name: gateway-service
@@ -365,7 +367,7 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - match: Host(`primecrib.app`) || Host(`www.primecrib.app`)
+    - match: Host(`pitch.primecrib.app`)
       kind: Rule
       services:
         - name: primecrib-pitch

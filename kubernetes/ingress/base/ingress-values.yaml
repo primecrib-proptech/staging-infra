@@ -3,11 +3,11 @@
 # Environment-specific details (hostname prefixes, namespaces) are handled by overlays.
 #
 # Structure:
-#   - infraServices: Services using cyberstarsng.com (environment-agnostic)
+#   - infraServices: Services using primecrib.app (environment-agnostic)
 #   - appServices: Services using primecrib.app (environment-aware)
 
 ---
-# INFRASTRUCTURE SERVICES (cyberstarsng.com)
+# INFRASTRUCTURE SERVICES (primecrib.app)
 # These are shared dashboards/tools, not environment-specific
 
 infraServices:
@@ -24,7 +24,7 @@ infraServices:
       - retry
       - circuit-breaker
       - buffering
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: prometheus
     serviceName: kube-prometheus-prometheus
@@ -36,7 +36,7 @@ infraServices:
       - security-headers
       - compression
       - rate-limit
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: vault
     serviceName: vault
@@ -46,10 +46,10 @@ infraServices:
     serversTransport: vault-transport
     middlewares:
       - security-headers
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: rabbitmq
-    displayName: rabbit
+    displayName: rabbitmq
     serviceName: proptech-rabbitmq
     namespace: platform-data
     port: 15672
@@ -59,7 +59,7 @@ infraServices:
       - retry
       - buffering
       - rabbitmq-csp
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: minio-console
     displayName: minio
@@ -70,7 +70,7 @@ infraServices:
       - dashboard-auth
       - cache-no-store
       - security-headers
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: minio-s3
     displayName: minio.s3
@@ -82,7 +82,7 @@ infraServices:
       - security-headers
       - compression
       - rate-limit
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: imgproxy
     serviceName: imgproxy
@@ -92,7 +92,7 @@ infraServices:
       - dashboard-auth
       - cache-no-store
       - security-headers
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: adminer
     serviceName: adminer
@@ -102,7 +102,7 @@ infraServices:
       - dashboard-auth
       - cache-no-store
       - security-headers
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
   - name: redis-insight
     serviceName: redis-insight
@@ -112,7 +112,7 @@ infraServices:
       - dashboard-auth
       - cache-no-store
       - security-headers
-    domain: cyberstarsng.com
+    domain: primecrib.app
 
 ---
 # APPLICATION SERVICES (primecrib.app)
@@ -122,7 +122,7 @@ infraServices:
 
 appServices:
   - name: gateway
-    displayName: api
+    displayName: route
     serviceName: gateway-service
     port: 8008
     stickySession:
@@ -137,6 +137,24 @@ appServices:
       - circuit-breaker
       - buffering
     description: "Gateway Service API"
+
+  - name: proptech-core
+    serviceName: proptech-core-service
+    displayName: api
+    port: 8081
+    priority: 1
+    stickySession:
+      cookieName: proptech_sticky
+      secure: true
+      httpOnly: true
+    middlewares:
+      - security-headers
+      - compression
+      - rate-limit
+      - retry
+      - circuit-breaker
+      - buffering
+    description: "Proptech Core Service API"
 
   - name: primecrib-app
     displayName: primecrib
@@ -176,27 +194,3 @@ appServices:
     description: "Landing Page / Pitch"
 
 ---
-# SPECIAL LEGACY SERVICES
-# Services that don't follow standard naming patterns
-
-legacyServices:
-  - name: proptech-core
-    serviceName: proptech-core-service
-    displayName: proptech-api
-    customHost: proptech-api.cyberstarsng.com
-    port: 8081
-    priority: 1
-    stickySession:
-      cookieName: proptech_sticky
-      secure: true
-      httpOnly: true
-    middlewares:
-      - security-headers
-      - compression
-      - rate-limit
-      - retry
-      - circuit-breaker
-      - buffering
-    domain: cyberstarsng.com
-    description: "Proptech Core Service (Legacy - uses custom domain)"
-

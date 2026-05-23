@@ -23,7 +23,7 @@ patchesStrategicMerge:
       name: gateway-app
     spec:
       routes:
-        - match: Host(`api.primecrib.app`)
+        - match: Host(`route.primecrib.app`)
           kind: Rule
           services:
             - name: gateway-service
@@ -75,7 +75,7 @@ patchesStrategicMerge:
       name: proptech-core
     spec:
       routes:
-        - match: Host(`proptech-api.cyberstarsng.com`)
+        - match: Host(`api.cyberstarsng.com`)
           kind: Rule
           priority: 1
           services:

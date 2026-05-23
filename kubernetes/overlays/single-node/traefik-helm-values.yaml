@@ -40,7 +40,7 @@ ingressRoute:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: cyberstarsng@gmail.com
+      email: primecribtechnology@gmail.com
       storage: /data/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       dnsChallenge:
