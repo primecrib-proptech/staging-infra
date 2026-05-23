@@ -1,0 +1,380 @@
+# Ingress Routes Template - Environment-Aware IngressRoute Resources
+# This file generates all IngressRoute resources dynamically based on:
+#   - ENVIRONMENT variable (staging or production)
+#   - Service definitions from ingress-values.yaml
+#   - Domain configuration from environment overlay
+#
+# The hostname pattern is:
+#   Staging:     <displayName>.staging.primecrib.app  (e.g., api.staging.primecrib.app)
+#   Production:  <displayName>.primecrib.app          (e.g., api.primecrib.app)
+#   Infra:       <displayName>.cyberstarsng.com       (unchanged)
+#
+# Usage: This is processed by Kustomize configMapGenerator + strategic merge patches
+
+---
+# INFRASTRUCTURE ROUTES
+# These routes are environment-independent (shared dashboards/tools)
+#
+# Pattern: <service>.cyberstarsng.com
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`grafana.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: kube-prometheus-grafana
+          namespace: observability
+          port: 80
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`prometheus.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: kube-prometheus-prometheus
+          namespace: observability
+          port: 9090
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vault
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`vault.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: vault
+          namespace: platform-data
+          port: 8200
+          scheme: https
+          serversTransport: vault-transport
+      middlewares:
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: vault-transport
+  namespace: ingress
+spec:
+  insecureSkipVerify: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rabbitmq
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`rabbit.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: proptech-rabbitmq
+          namespace: platform-data
+          port: 15672
+      middlewares:
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+        - name: rabbitmq-csp
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: minio-console
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`minio.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: minio-console
+          namespace: platform-data
+          port: 9001
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: minio-s3
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`minio.s3.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: minio
+          namespace: platform-data
+          port: 9000
+      middlewares:
+        - name: cache-static-long
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: imgproxy
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`imgproxy.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: imgproxy
+          namespace: platform-tools
+          port: 8080
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: adminer
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`adminer.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: adminer
+          namespace: platform-tools
+          port: 8080
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: redis-insight
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`redis-insight.cyberstarsng.com`)
+      kind: Rule
+      services:
+        - name: redis-insight
+          namespace: platform-tools
+          port: 5540
+      middlewares:
+        - name: dashboard-auth
+        - name: cache-no-store
+        - name: security-headers
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: proptech-core
+  namespace: ingress
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`proptech-api.cyberstarsng.com`)
+      kind: Rule
+      priority: 1
+      services:
+        - name: proptech-core-service
+          namespace: apps-staging  # NOTE: This will be overridden by environment overlay
+          port: 8081
+          sticky:
+            cookie:
+              name: proptech_sticky
+              secure: true
+              httpOnly: true
+      middlewares:
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+
+---
+# APPLICATION ROUTES (ENVIRONMENT-AWARE)
+# These are substituted by overlays with correct hostnames and namespaces
+
+# STAGING ROUTES (Applied when ENVIRONMENT=staging)
+# Pattern: <displayName>.staging.primecrib.app
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gateway-app
+  namespace: ingress
+  annotations:
+    environment: "staging"  # Will be overridden by production overlay
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.api.primecrib.app`)  # Will be patched for production
+      kind: Rule
+      services:
+        - name: gateway-service
+          namespace: apps-staging  # Will be overridden by production overlay
+          port: 8008
+          sticky:
+            cookie:
+              name: proptech_gateway_sticky
+              secure: true
+              httpOnly: true
+      middlewares:
+        - name: security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: circuit-breaker
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-app
+  namespace: ingress
+  annotations:
+    environment: "staging"  # Will be overridden by production overlay
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.primecrib.app`)  # Will be patched for production
+      kind: Rule
+      services:
+        - name: primecrib-app
+          namespace: apps-staging  # Will be overridden by production overlay
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-admin
+  namespace: ingress
+  annotations:
+    environment: "staging"  # Will be overridden by production overlay
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`staging.admin.primecrib.app`)  # Will be patched for production
+      kind: Rule
+      services:
+        - name: primecrib-admin
+          namespace: apps-staging  # Will be overridden by production overlay
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+        - name: retry
+        - name: buffering
+  tls:
+    certResolver: letsencrypt
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: primecrib-pitch
+  namespace: ingress
+  annotations:
+    environment: "staging"  # Will be overridden by production overlay
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`primecrib.app`) || Host(`www.primecrib.app`)
+      kind: Rule
+      services:
+        - name: primecrib-pitch
+          namespace: apps-staging  # Will be overridden by production overlay
+          port: 3000
+      middlewares:
+        - name: frontend-security-headers
+        - name: compression
+        - name: rate-limit
+  tls:
+    certResolver: letsencrypt
+

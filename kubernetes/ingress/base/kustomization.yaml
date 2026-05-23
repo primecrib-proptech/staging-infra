@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ingress
+
+# Resources include all base ingress components
+resources:
+  - cert-issuer.yaml
+  - middlewares/
+  - ingress-routes.yaml
+
+# ConfigMap for environment variables that will be substituted by overlays
+configMapGenerator:
+  - name: ingress-environment
+    behavior: create
+    literals:
+      - ENVIRONMENT=staging  # Default; will be overridden by overlays
+
+# Variables for template substitution
+# These can be referenced in resources for dynamic host generation
+vars:
+  - name: ENVIRONMENT
+    objref:
+      kind: ConfigMap
+      name: ingress-environment
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.ENVIRONMENT
+

@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ingress
+
+# Base configuration (already contains staging defaults)
+bases:
+  - ../../base
+
+# Explicit environment configuration for staging
+# This ensures staging is clearly identified during deployment
+configMapGenerator:
+  - name: ingress-environment
+    behavior: merge
+    literals:
+      - ENVIRONMENT=staging
+
+# Optional: Add labels to all resources to identify them as staging
+commonLabels:
+  environment: staging
+  managed-by: kustomize
+
+# Optional: Add annotations for deployment metadata
+commonAnnotations:
+  deployment-environment: staging
+  documentation: "https://internal.wiki/kubernetes/ingress-staging"
+
+# Note: No strategic merge patches needed here because the base file
+# already uses staging hostnames and app-staging namespaces.
+# This overlay simply confirms and documents the staging configuration.
+

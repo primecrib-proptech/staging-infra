@@ -3,7 +3,11 @@ kind: Kustomization
 
 namespace: ingress
 
+# NOTE: This root kustomization is DEPRECATED
+# New deployments should use: kubectl apply -k overlays/{staging|production}
+# Legacy deployments can still use this, but will get middlewares from base/
+
 resources:
   - cert-issuer.yaml
-  - middlewares/
-  - routes/
+  - base/middlewares/     # Updated to reference canonical base/middlewares/
+  - routes/              # NOTE: routes/ also moved to base/ in refactored config

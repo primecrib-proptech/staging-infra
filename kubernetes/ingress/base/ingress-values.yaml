@@ -1,0 +1,202 @@
+# Base Ingress Configuration Values
+# This file defines all services that need ingress routes.
+# Environment-specific details (hostname prefixes, namespaces) are handled by overlays.
+#
+# Structure:
+#   - infraServices: Services using cyberstarsng.com (environment-agnostic)
+#   - appServices: Services using primecrib.app (environment-aware)
+
+---
+# INFRASTRUCTURE SERVICES (cyberstarsng.com)
+# These are shared dashboards/tools, not environment-specific
+
+infraServices:
+  - name: grafana
+    serviceName: kube-prometheus-grafana
+    namespace: observability
+    port: 80
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+      - compression
+      - rate-limit
+      - retry
+      - circuit-breaker
+      - buffering
+    domain: cyberstarsng.com
+
+  - name: prometheus
+    serviceName: kube-prometheus-prometheus
+    namespace: observability
+    port: 9090
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+      - compression
+      - rate-limit
+    domain: cyberstarsng.com
+
+  - name: vault
+    serviceName: vault
+    namespace: platform-data
+    port: 8200
+    scheme: https
+    serversTransport: vault-transport
+    middlewares:
+      - security-headers
+    domain: cyberstarsng.com
+
+  - name: rabbitmq
+    displayName: rabbit
+    serviceName: proptech-rabbitmq
+    namespace: platform-data
+    port: 15672
+    middlewares:
+      - compression
+      - rate-limit
+      - retry
+      - buffering
+      - rabbitmq-csp
+    domain: cyberstarsng.com
+
+  - name: minio-console
+    displayName: minio
+    serviceName: minio-console
+    namespace: platform-data
+    port: 9001
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+    domain: cyberstarsng.com
+
+  - name: minio-s3
+    displayName: minio.s3
+    serviceName: minio
+    namespace: platform-data
+    port: 9000
+    middlewares:
+      - cache-static-long
+      - security-headers
+      - compression
+      - rate-limit
+    domain: cyberstarsng.com
+
+  - name: imgproxy
+    serviceName: imgproxy
+    namespace: platform-tools
+    port: 8080
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+    domain: cyberstarsng.com
+
+  - name: adminer
+    serviceName: adminer
+    namespace: platform-tools
+    port: 8080
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+    domain: cyberstarsng.com
+
+  - name: redis-insight
+    serviceName: redis-insight
+    namespace: platform-tools
+    port: 5540
+    middlewares:
+      - dashboard-auth
+      - cache-no-store
+      - security-headers
+    domain: cyberstarsng.com
+
+---
+# APPLICATION SERVICES (primecrib.app)
+# These services are environment-aware:
+#   Staging: <service>.staging.primecrib.app
+#   Production: <service>.primecrib.app
+
+appServices:
+  - name: gateway
+    displayName: api
+    serviceName: gateway-service
+    port: 8008
+    stickySession:
+      cookieName: proptech_gateway_sticky
+      secure: true
+      httpOnly: true
+    middlewares:
+      - security-headers
+      - compression
+      - rate-limit
+      - retry
+      - circuit-breaker
+      - buffering
+    description: "Gateway Service API"
+
+  - name: primecrib-app
+    displayName: primecrib
+    serviceName: primecrib-app
+    port: 3000
+    middlewares:
+      - frontend-security-headers
+      - compression
+      - rate-limit
+      - retry
+      - buffering
+    description: "Main Application"
+
+  - name: primecrib-admin
+    displayName: admin
+    serviceName: primecrib-admin
+    port: 3000
+    middlewares:
+      - frontend-security-headers
+      - compression
+      - rate-limit
+      - retry
+      - buffering
+    description: "Admin Application"
+
+  - name: primecrib-pitch
+    displayName: root
+    serviceName: primecrib-pitch
+    port: 3000
+    matchHosts:
+      - primecrib.app
+      - www.primecrib.app
+    middlewares:
+      - frontend-security-headers
+      - compression
+      - rate-limit
+    description: "Landing Page / Pitch"
+
+---
+# SPECIAL LEGACY SERVICES
+# Services that don't follow standard naming patterns
+
+legacyServices:
+  - name: proptech-core
+    serviceName: proptech-core-service
+    displayName: proptech-api
+    customHost: proptech-api.cyberstarsng.com
+    port: 8081
+    priority: 1
+    stickySession:
+      cookieName: proptech_sticky
+      secure: true
+      httpOnly: true
+    middlewares:
+      - security-headers
+      - compression
+      - rate-limit
+      - retry
+      - circuit-breaker
+      - buffering
+    domain: cyberstarsng.com
+    description: "Proptech Core Service (Legacy - uses custom domain)"
+
