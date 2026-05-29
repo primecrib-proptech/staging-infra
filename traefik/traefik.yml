@@ -35,8 +35,9 @@ certificatesResolvers:
       storage: /letsencrypt/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       keyType: RSA4096
-      httpChallenge:
-        entryPoint: web
+      # Use TLS-ALPN challenge so certificates can be validated over 443
+      # This avoids HTTP-01 failures when port 80 is not reachable end-to-end.
+      tlsChallenge: {}
 
 # Providers
 providers:
