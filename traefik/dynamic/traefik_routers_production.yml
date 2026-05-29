@@ -24,7 +24,7 @@ http:
         - securityHeaders
 
     rabbit-dashboard:
-      rule: Host(`rabbit.primecrib.app`)
+      rule: Host(`rabbitmq.primecrib.app`)
       entryPoints:
         - websecure
       service: rabbit-service

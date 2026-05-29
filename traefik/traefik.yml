@@ -31,7 +31,7 @@ ping:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: cyberstarsng@gmail.com
+      email: primecribtechnology@gmail.com
       storage: /letsencrypt/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
       keyType: RSA4096
@@ -45,7 +45,7 @@ providers:
     exposedByDefault: false
     network: traefik-public
     watch: true
-    defaultRule: "Host(`{{ normalize .Name }}.cyberstarsng.com`)"
+    defaultRule: "Host(`{{ normalize .Name }}.primecrib.app`)"
 
   file:
     directory: /etc/traefik/dynamic

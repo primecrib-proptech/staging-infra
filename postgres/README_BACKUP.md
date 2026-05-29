@@ -49,7 +49,7 @@ If you run the script on the host (e.g. host cron), you must set **environment v
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `S3_ENDPOINT_URL` | Yes | e.g. `http://minio:9000` or `https://minio.s3.cyberstarsng.com` |
+| `S3_ENDPOINT_URL` | Yes | e.g. `http://minio:9000` or `https://minio.s3.primecrib.app` |
 | `S3_BUCKET` | Yes | e.g. `postgres-backups` |
 | `AWS_ACCESS_KEY_ID` | Yes | MinIO access key |
 | `AWS_SECRET_ACCESS_KEY` | Yes | MinIO secret key |
