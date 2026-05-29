@@ -36,7 +36,7 @@ http:
           script-src 'self' 'unsafe-inline' 'unsafe-eval';
           style-src 'self' 'unsafe-inline';
           img-src 'self' data:;
-          connect-src 'self' wss://api.primecrib.app wss://staging.api.primecrib.app;
+          connect-src 'self' wss://api.primecrib.app wss://staging.api.primecrib.app wss://route.primecrib.app wss://staging.route.primecrib.app;
           font-src 'self';
           object-src 'self';
           frame-ancestors 'self';
@@ -64,8 +64,8 @@ http:
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
           style-src-attr 'unsafe-inline';
-          img-src 'self' data: https://minio.s3.primecrib.app https://minio.s3.primecrib.app https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://imgproxy.primecrib.app/;
-          connect-src 'self' https://api.primecrib.app https://api.primecrib.app https://staging.api.primecrib.app https://api.primecrib.app https://staging.api.primecrib.app https://minio.s3.primecrib.app https://minio.s3.primecrib.app http://localhost:3000 https://cdn.jsdelivr.net https://storage.googleapis.com https://imgproxy.primecrib.app wss://api.primecrib.app wss://staging.api.primecrib.app;
+          img-src 'self' data: https://minio.s3.primecrib.app https://staging.minio.s3.primecrib.app https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://imgproxy.primecrib.app https://staging.imgproxy.primecrib.app;
+          connect-src 'self' https://api.primecrib.app https://staging.api.primecrib.app https://staging.route.primecrib.app https://route.primecrib.app https://minio.s3.primecrib.app https://staging.minio.s3.primecrib.app https://cdn.jsdelivr.net https://storage.googleapis.com https://imgproxy.primecrib.app  https://staging.imgproxy.primecrib.app wss://api.primecrib.app wss://staging.api.primecrib.app wss://route.primecrib.app wss://staging.route.primecrib.app;
           worker-src 'self' blob: https://cdn.jsdelivr.net;;
           font-src 'self' https://fonts.gstatic.com data:;
           object-src 'none';
