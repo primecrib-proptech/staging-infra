@@ -1,7 +1,7 @@
 http:
   routers:
     traefik-dashboard:
-      rule: Host(`staging.traefik.primecrib.app`)
+      rule: Host(`traefik.primecrib.app`)
       entryPoints:
         - websecure
       service: api@internal
@@ -13,7 +13,7 @@ http:
         - securityHeaders
 
     vault-dashboard:
-      rule: Host(`staging.vault.primecrib.app`)
+      rule: Host(`vault.primecrib.app`)
       entryPoints:
         - websecure
       service: vault-service
@@ -24,7 +24,7 @@ http:
         - securityHeaders
 
     rabbit-dashboard:
-      rule: Host(`staging.rabbit.primecrib.app`)
+      rule: Host(`rabbit.primecrib.app`)
       entryPoints:
         - websecure
       service: rabbit-service
@@ -39,7 +39,7 @@ http:
         - rabbitmq-csp
 
     minio-dashboard:
-      rule: Host(`staging.minio.primecrib.app`)
+      rule: Host(`minio.primecrib.app`)
       entryPoints:
         - websecure
       service: minio-service
@@ -56,7 +56,7 @@ http:
         - buffering
 
     minio-s3:
-      rule: Host(`staging.minio.s3.primecrib.app`)
+      rule: Host(`minio.s3.primecrib.app`)
       entryPoints:
         - websecure
       service: minio-s3-service
@@ -73,7 +73,7 @@ http:
         - buffering
 
     prometheus-dashboard:
-      rule: Host(`staging.prometheus.primecrib.app`)
+      rule: Host(`prometheus.primecrib.app`)
       entryPoints:
         - websecure
       service: prometheus-service
@@ -91,7 +91,7 @@ http:
         - buffering
 
     grafana-dashboard:
-      rule: Host(`staging.grafana.primecrib.app`)
+      rule: Host(`grafana.primecrib.app`)
       entryPoints:
         - websecure
       service: grafana-service
@@ -108,7 +108,7 @@ http:
         - buffering
 
     portainer-dashboard:
-      rule: Host(`staging.portainer.primecrib.app`)
+      rule: Host(`portainer.primecrib.app`)
       entryPoints:
         - websecure
       service: portainer-service
@@ -125,7 +125,7 @@ http:
         - buffering
 
     adminer-dashboard:
-      rule: Host(`staging.adminer.primecrib.app`)
+      rule: Host(`adminer.primecrib.app`)
       entryPoints:
         - websecure
       service: adminer-service
@@ -139,7 +139,7 @@ http:
         - compression
 
     redis-insight-dashboard:
-      rule: Host(`staging.redis-insight.primecrib.app`)
+      rule: Host(`redis-insight.primecrib.app`)
       entryPoints:
         - websecure
       service: redis-insight-service
@@ -153,7 +153,7 @@ http:
         - compression
 
     imgproxy-dashboard:
-      rule: Host(`staging.imgproxy.primecrib.app`)
+      rule: Host(`imgproxy.primecrib.app`)
       entryPoints:
         - websecure
       service: imgproxy-service
@@ -167,7 +167,7 @@ http:
         - compression
 
     haproxy-stats-dashboard:
-      rule: Host(`staging.haproxy.primecrib.app`)
+      rule: Host(`haproxy.primecrib.app`)
       entryPoints:
         - websecure
       service: haproxy-stats-service
@@ -181,7 +181,7 @@ http:
         - compression
 
     proptech-core-service:
-      rule: Host(`staging.proptech-api.primecrib.app`)
+      rule: Host(`api.primecrib.app`)
       priority: 1
       entryPoints:
         - websecure
@@ -198,7 +198,7 @@ http:
         - buffering
 
     proptech-gateway-service:
-      rule: Host(`staging.staging.api.primecrib.app`)
+      rule: Host(`route.primecrib.app`)
       entryPoints:
         - websecure
       service: proptech-gateway-service
@@ -214,7 +214,7 @@ http:
         - buffering
 
     proptech-admin:
-      rule: Host(`staging.admin.primecrib.app`)
+      rule: Host(`admin.primecrib.app`)
       entryPoints:
         - websecure
       service: proptech-admin-service
@@ -229,25 +229,10 @@ http:
         - buffering
 
     proptech-app:
-      rule: Host(`staging.primecrib.app`)
+      rule: Host(`primecrib.app`)
       entryPoints:
         - websecure
       service: proptech-app-service
-      tls:
-        certResolver: letsencrypt
-        options: default
-      middlewares:
-        - frontendSecurityHeaders
-        - compression
-        - rateLimit
-        - retry
-        - buffering
-
-    proptech-pitch:
-      rule: Host(`pitch.primecrib.app`)
-      entryPoints:
-        - websecure
-      service: proptech-pitch-service
       tls:
         certResolver: letsencrypt
         options: default
@@ -355,16 +340,6 @@ http:
             secure: true
             httpOnly: true
 
-    proptech-pitch-service:
-      loadBalancer:
-        servers:
-          - url: "http://proptech_pitch:3000"
-        sticky:
-          cookie:
-            name: "proptech_pitch_sticky"
-            secure: true
-            httpOnly: true
-
   serversTransports:
     vaultTransport:
       insecureSkipVerify: true
@@ -374,14 +349,14 @@ tcp:
     minio-tcp:
       entryPoints:
         - websecure
-      rule: "HostSNI(`minio.s3.primecrib.app`)"  # Required for TLS
+      rule: "HostSNI(`minio.s3.primecrib.app`)"  # Production SNI without prefix
       service: minio-tcp
       tls:
         passthrough: true
     rabbit-tcp:
       entryPoints:
         - websecure
-      rule: "HostSNI(`rabbitmq.primecrib.app`)"  # Required for TLS
+      rule: "HostSNI(`rabbitmq.primecrib.app`)"  # Production SNI without prefix
       service: rabbit-tcp
       tls:
         certResolver: letsencrypt
@@ -396,3 +371,4 @@ tcp:
       loadBalancer:
         servers:
           - address: "rabbitmq:5672"
+

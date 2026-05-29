@@ -181,7 +181,7 @@ http:
         - compression
 
     proptech-core-service:
-      rule: Host(`staging.proptech-api.primecrib.app`)
+      rule: Host(`staging.api.primecrib.app`)
       priority: 1
       entryPoints:
         - websecure
@@ -198,7 +198,7 @@ http:
         - buffering
 
     proptech-gateway-service:
-      rule: Host(`staging.staging.api.primecrib.app`)
+      rule: Host(`staging.route.primecrib.app`)
       entryPoints:
         - websecure
       service: proptech-gateway-service
@@ -374,14 +374,14 @@ tcp:
     minio-tcp:
       entryPoints:
         - websecure
-      rule: "HostSNI(`minio.s3.primecrib.app`)"  # Required for TLS
+      rule: "HostSNI(`staging.minio.s3.primecrib.app`)"  # Staging SNI with prefix
       service: minio-tcp
       tls:
         passthrough: true
     rabbit-tcp:
       entryPoints:
         - websecure
-      rule: "HostSNI(`rabbitmq.primecrib.app`)"  # Required for TLS
+      rule: "HostSNI(`staging.rabbitmq.primecrib.app`)"  # Staging SNI with prefix
       service: rabbit-tcp
       tls:
         certResolver: letsencrypt
@@ -396,3 +396,4 @@ tcp:
       loadBalancer:
         servers:
           - address: "rabbitmq:5672"
+
