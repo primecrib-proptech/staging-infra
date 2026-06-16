@@ -641,7 +641,7 @@ services:
       # --- Security & Access ---
       IMGPROXY_ALLOWED_SOURCES: "s3://proptech-pub/,s3://"
 
-      IMGPROXY_WATERMARK_PATH: /watermarks/logo-96x96.png
+      IMGPROXY_WATERMARK_PATH: /watermarks/watermark-3.png
 
       # Performance & Security
       IMGPROXY_MAX_SRC_RESOLUTION: 50
