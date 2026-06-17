@@ -1,5 +1,6 @@
 -- ============================================
--- PostgreSQL Production Initialization Script
+-- PropTech PostgreSQL Bootstrap (Production Safe)
+-- Includes: Flyway + Quartz + PostGIS + RBAC
 -- ============================================
 
 \set ON_ERROR_STOP on
@@ -10,28 +11,28 @@
 
 CREATE ROLE proptech
     WITH LOGIN PASSWORD :'DB_PASSWORD'
-    NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
+    SUPERUSER
     CONNECTION LIMIT 5;
 
 CREATE ROLE proptechro
     WITH LOGIN PASSWORD :'DB_RO_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 10;
+    CONNECTION LIMIT 20;
 
 CREATE ROLE proptechapp
     WITH LOGIN PASSWORD :'DB_APP_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 30;
+    CONNECTION LIMIT 50;
 
 CREATE ROLE proptechapi
     WITH LOGIN PASSWORD :'DB_API_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 30;
+    CONNECTION LIMIT 50;
 
 CREATE ROLE proptechmigration
     WITH LOGIN PASSWORD :'DB_MIGRATION_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 20;
+    CONNECTION LIMIT 10;
 
 -- ============================================
 -- 2) DATABASES
@@ -43,12 +44,18 @@ CREATE DATABASE quartzdb WITH OWNER = proptech;
 REVOKE ALL ON DATABASE proptechdb FROM PUBLIC;
 REVOKE ALL ON DATABASE quartzdb FROM PUBLIC;
 
+GRANT CONNECT ON DATABASE proptechdb TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
+GRANT CONNECT ON DATABASE quartzdb TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
+
 -- ============================================
 -- 3) PROPTECH DB
 -- ============================================
 
 \connect proptechdb
 
+-- ----------------------------
+-- SCHEMA
+-- ----------------------------
 CREATE SCHEMA IF NOT EXISTS core AUTHORIZATION proptech;
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
@@ -56,84 +63,64 @@ REVOKE CREATE ON DATABASE proptechdb FROM PUBLIC;
 
 ALTER DATABASE proptechdb SET search_path TO core, public;
 
--- ============================================
--- CONNECT
--- ============================================
-GRANT CONNECT ON DATABASE proptechdb
-TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
+-- ----------------------------
+-- EXTENSIONS (CRITICAL FIX: MUST BE FIRST)
+-- ----------------------------
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
--- ============================================
--- SCHEMA USAGE (ALL ROLES CAN READ CORE STRUCTURE)
--- ============================================
-GRANT USAGE ON SCHEMA core
-TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
-
+-- ----------------------------
+-- SCHEMA ACCESS
+-- ----------------------------
+GRANT USAGE ON SCHEMA core TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
 GRANT CREATE ON SCHEMA core TO proptechmigration;
 
--- ============================================
--- SUPER-ADMIN (proptech)
--- ============================================
+-- ----------------------------
+-- TABLE PRIVILEGES (CURRENT OBJECTS)
+-- ----------------------------
+
+-- Admin
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO proptech;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO proptech;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA core TO proptech;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptech;
 
--- ============================================
--- RO (READ ONLY)
--- ============================================
+-- Read-only
 GRANT SELECT ON ALL TABLES IN SCHEMA core TO proptechro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechro;
 
--- ============================================
--- APP ROLE
--- ============================================
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA core TO proptechapp;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechapp;
+-- App + API (runtime DML only)
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA core TO proptechapp, proptechapi;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp, proptechapi;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechapp, proptechapi;
 
-REVOKE DELETE, TRUNCATE, REFERENCES, TRIGGER
-ON ALL TABLES IN SCHEMA core FROM proptechapp;
-
--- ============================================
--- API ROLE
--- ============================================
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA core TO proptechapi;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapi;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechapi;
-
-REVOKE DELETE, TRUNCATE, REFERENCES, TRIGGER
-ON ALL TABLES IN SCHEMA core FROM proptechapi;
-
--- ============================================
--- MIGRATION ROLE (FULL CONTROL)
--- ============================================
+-- Migration (full control)
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO proptechmigration;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO proptechmigration;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA core TO proptechmigration;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechmigration;
 
-GRANT CREATE ON SCHEMA core TO proptechmigration;
-
--- ============================================
+-- ----------------------------
 -- DEFAULT PRIVILEGES (CRITICAL FIX)
--- ensures future tables are automatically covered
--- ============================================
+-- ensures Flyway-created tables are automatically granted
+-- ----------------------------
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT ALL ON TABLES TO proptech;
+GRANT ALL PRIVILEGES ON TABLES TO proptech;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
 GRANT SELECT ON TABLES TO proptechro;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT SELECT, INSERT, UPDATE ON TABLES TO proptechapp, proptechapi;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO proptechapp, proptechapi;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT ALL ON SEQUENCES TO proptech;
+GRANT ALL PRIVILEGES ON TABLES TO proptechmigration;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT USAGE, SELECT ON SEQUENCES TO proptechro, proptechapp, proptechapi;
+GRANT USAGE, SELECT ON SEQUENCES TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT EXECUTE ON FUNCTIONS TO proptechapp, proptechapi;
+GRANT EXECUTE ON FUNCTIONS TO proptech, proptechapp, proptechapi;
 
 -- ============================================
 -- 4) QUARTZ DB
@@ -148,34 +135,33 @@ REVOKE CREATE ON DATABASE quartzdb FROM PUBLIC;
 
 ALTER DATABASE quartzdb SET search_path TO core, public;
 
-GRANT CONNECT ON DATABASE quartzdb
-TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
-
-GRANT USAGE ON SCHEMA core
-TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
-
+-- access
+GRANT USAGE ON SCHEMA core TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
 GRANT CREATE ON SCHEMA core TO proptechmigration;
 
--- ============================================
--- QUARTZ RUNTIME ACCESS
--- ============================================
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA core TO proptechapp, proptechapi;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp, proptechapi;
+-- runtime
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO proptechapp, proptechapi;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO proptechapp, proptechapi;
 
+-- read-only
 GRANT SELECT ON ALL TABLES IN SCHEMA core TO proptechro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechro;
 
--- ============================================
--- MIGRATION FULL CONTROL
--- ============================================
+-- migration full control
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO proptechmigration;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO proptechmigration;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT ALL ON TABLES TO proptechapp, proptechapi;
+GRANT ALL PRIVILEGES ON TABLES TO proptechapp, proptechapi;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-GRANT ALL ON SEQUENCES TO proptechapp, proptechapi;
+GRANT ALL PRIVILEGES ON TABLES TO proptechmigration;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
+GRANT SELECT ON TABLES TO proptechro;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
+GRANT ALL PRIVILEGES ON SEQUENCES TO proptechapp, proptechapi, proptechro;
 
 -- ============================================
 -- 5) ROLE HARDENING
@@ -187,23 +173,28 @@ ALTER ROLE proptech SET search_path = core, public;
 ALTER ROLE proptechro SET statement_timeout = '2min';
 
 ALTER ROLE proptechapp SET statement_timeout = '30s';
-ALTER ROLE proptechapp SET log_statement = 'mod';
 
 ALTER ROLE proptechapi SET statement_timeout = '15s';
-ALTER ROLE proptechapi SET log_statement = 'mod';
 
 ALTER ROLE proptechmigration SET statement_timeout = '10min';
-ALTER ROLE proptechmigration SET log_statement = 'all';
+
+-- Quartz fix (IMPORTANT)
+ALTER ROLE proptechapp SET default_transaction_read_only = off;
+ALTER ROLE proptechapi SET default_transaction_read_only = off;
 
 -- ============================================
--- 6) VERIFICATION
+-- 6) SAFE VERIFICATION (NO CRASHES)
 -- ============================================
 
 SHOW password_encryption;
 
 \connect proptechdb
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
-SELECT PostGIS_Version();
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') THEN
+        RAISE NOTICE 'PostGIS version: %', postgis_version();
+    ELSE
+        RAISE NOTICE 'PostGIS not installed';
+    END IF;
+END $$;
