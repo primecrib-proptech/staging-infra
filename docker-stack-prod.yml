@@ -701,112 +701,112 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/postgres-data
+      device: /opt/containers/prod-storages/postgres-data
 
   minio_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/minio-data
+      device: /opt/containers/prod-storages/minio-data
 
   minio_config:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/minio-config
+      device: /opt/containers/prod-storages/minio-config
 
   prometheus_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/prometheus-data
+      device: /opt/containers/prod-storages/prometheus-data
 
   grafana_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/grafana-data
+      device: /opt/containers/prod-storages/grafana-data
 
   grafana_provisioning:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/grafana-provisioning
+      device: /opt/containers/prod-storages/grafana-provisioning
 
   traefik_letsencrypt:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/traefik-letsencrypt-data
+      device: /opt/containers/prod-storages/traefik-letsencrypt-data
 
   traefik_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/traefik-data
+      device: /opt/containers/prod-storages/traefik-data
 
   traefik_logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/traefik-logs
+      device: /opt/containers/prod-storages/traefik-logs
 
   rabbitmq_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/rabbitmq-data
+      device: /opt/containers/prod-storages/rabbitmq-data
 
   redis_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/redis-data
+      device: /opt/containers/prod-storages/redis-data
 
   redis_replica_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/redis-replica-data
+      device: /opt/containers/prod-storages/redis-replica-data
 
   vault_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/vault-data
+      device: /opt/containers/prod-storages/vault-data
 
   vault_logs:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/vault-logs
+      device: /opt/containers/prod-storages/vault-logs
 
   portainer_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/portainer
+      device: /opt/containers/prod-storages/portainer
 
   loki_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/loki-data
+      device: /opt/containers/prod-storages/loki-data
 
   tempo_data:
     driver: local
@@ -816,14 +816,14 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/postgres-backup-data
+      device: /opt/containers/prod-storages/postgres-backup-data
 
   redisinsight_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/containers/storages/redisinsight-data
+      device: /opt/containers/prod-storages/redisinsight-data
 
 networks:
   backend:
