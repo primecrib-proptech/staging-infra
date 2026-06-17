@@ -16,11 +16,18 @@ STACK_NAME="${ENVIRONMENT}-infra"
 DOCKER_COMPOSE_FILE="docker-stack.yml"
 
 # Validate environment
-if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "production" ]; then
+if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "prod" ]; then
     echo "Error: Invalid environment '$ENVIRONMENT'"
     echo "Must be 'staging' or 'production'"
     exit 1
 fi
+
+if [ "$EN$ENVIRONMENT" == "staging" ]; then
+  DOCKER_COMPOSE_FILE="docker-stack.yml"
+else
+  DOCKER_COMPOSE_FILE="docker-stack-prod.yml"
+fi
+
 
 echo "=========================================="
 echo "Deploying $ENVIRONMENT infrastructure"
