@@ -64,13 +64,6 @@ REVOKE CREATE ON DATABASE proptechdb FROM PUBLIC;
 ALTER DATABASE proptechdb SET search_path TO core, public;
 
 -- ----------------------------
--- EXTENSIONS (CRITICAL FIX: MUST BE FIRST)
--- ----------------------------
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
-
--- ----------------------------
 -- SCHEMA ACCESS
 -- ----------------------------
 GRANT USAGE ON SCHEMA core TO proptech, proptechro, proptechapp, proptechapi, proptechmigration;
@@ -189,6 +182,13 @@ ALTER ROLE proptechapi SET default_transaction_read_only = off;
 SHOW password_encryption;
 
 \connect proptechdb
+
+-- ----------------------------
+-- EXTENSIONS (CRITICAL FIX: MUST BE FIRST)
+-- ----------------------------
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 DO $$
 BEGIN
