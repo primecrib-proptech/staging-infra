@@ -123,7 +123,6 @@ services:
       - db_user
       - db_password
       - postgres_password
-      - db_password
       - db_ro_password
       - db_app_password
       - db_api_password
