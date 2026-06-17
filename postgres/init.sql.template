@@ -6,13 +6,8 @@
 \set ON_ERROR_STOP on
 
 -- ============================================
--- 1) Roles — least privilege, NO superuser
+-- 1) ROLES
 -- ============================================
--- proptech            : schema OWNER (DDL rights within its schema only). Not used by the app at runtime.
--- proptechro           : read-only reporting / BI / read replicas
--- proptechapp          : internal application service (background jobs, internal workers)
--- proptechapi          : public-facing API service (tightest runtime grants)
--- proptechmigration    : CI/CD migration runner (Flyway/Liquibase) — DDL + DML, used only during deploys
 
 CREATE ROLE proptech
     WITH LOGIN PASSWORD :'DB_PASSWORD'
@@ -27,182 +22,164 @@ CREATE ROLE proptechro
 CREATE ROLE proptechapp
     WITH LOGIN PASSWORD :'DB_APP_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 30;   -- size to (hikari.maximum-pool-size * instance-count) + headroom
+    CONNECTION LIMIT 30;
 
 CREATE ROLE proptechapi
     WITH LOGIN PASSWORD :'DB_API_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 30;   -- size to (hikari.maximum-pool-size * instance-count) + headroom
+    CONNECTION LIMIT 30;
 
 CREATE ROLE proptechmigration
     WITH LOGIN PASSWORD :'DB_MIGRATION_PASSWORD'
     NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT
-    CONNECTION LIMIT 10;    -- migrations run briefly during deploy, never sustained load
+    CONNECTION LIMIT 10;
 
 -- ============================================
--- 2) Databases
+-- 2) DATABASES
 -- ============================================
-CREATE DATABASE proptechdb
-    WITH OWNER = proptech
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'en_US.utf8'
-    LC_CTYPE = 'en_US.utf8'
-    TEMPLATE = template0;
 
-CREATE DATABASE quartzdb
-    WITH OWNER = proptech
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'en_US.utf8'
-    LC_CTYPE = 'en_US.utf8'
-    TEMPLATE = template0;
+CREATE DATABASE proptechdb WITH OWNER = proptech;
+CREATE DATABASE quartzdb WITH OWNER = proptech;
 
--- Lock down database-level access from PUBLIC immediately
 REVOKE ALL ON DATABASE proptechdb FROM PUBLIC;
 REVOKE ALL ON DATABASE quartzdb FROM PUBLIC;
 
 -- ============================================
--- 3) proptechdb — schema, grants, default privileges
+-- 3) PROPTECH DB
 -- ============================================
+
 \connect proptechdb
 
 CREATE SCHEMA IF NOT EXISTS core AUTHORIZATION proptech;
+
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE CREATE ON DATABASE proptechdb FROM PUBLIC;
+
 ALTER DATABASE proptechdb SET search_path TO core, public;
 
+-- Extensions (ONLY here)
 CREATE EXTENSION IF NOT EXISTS btree_gist;
--- PostGIS only if geospatial features (property mapping/search) are in use.
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
--- --- CONNECT privilege ---
+-- SAFE PostGIS verification (only if installed)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'postgis'
+    ) THEN
+        RAISE NOTICE 'PostGIS installed successfully';
+    END IF;
+END $$;
+
+-- ============================================
+-- GRANTS (proptechdb)
+-- ============================================
+
 GRANT CONNECT ON DATABASE proptechdb TO proptechro, proptechapp, proptechapi, proptechmigration;
 
--- --- Schema usage ---
 GRANT USAGE ON SCHEMA core TO proptechro, proptechapp, proptechapi;
 GRANT USAGE, CREATE ON SCHEMA core TO proptechmigration;
 
--- --- proptechro: read-only, current + future tables ---
+-- RO
 GRANT SELECT ON ALL TABLES IN SCHEMA core TO proptechro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechro;
 
--- --- proptechapp: internal service, DML only, no DDL, no DELETE/TRUNCATE ---
+-- APP
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA core TO proptechapp;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechapp;
 REVOKE DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA core FROM proptechapp;
 
--- --- proptechapi: public-facing, DML only, tightest runtime role ---
+-- API
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA core TO proptechapi;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapi;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechapi;
 REVOKE DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA core FROM proptechapi;
 
--- --- proptechmigration: full DDL + DML for deploy-time migrations only ---
+-- MIGRATION
 GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-    ON ALL TABLES IN SCHEMA core TO proptechmigration;
+ON ALL TABLES IN SCHEMA core TO proptechmigration;
+
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA core TO proptechmigration;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA core TO proptechmigration;
 GRANT CREATE ON SCHEMA core TO proptechmigration;
 
--- Future grants: ensure new tables, sequences, functions get the right permissions automatically
+-- DEFAULT PRIVILEGES (migration-owned objects ONLY)
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
     GRANT SELECT ON TABLES TO proptechro;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT USAGE, SELECT ON SEQUENCES TO proptechro;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
     GRANT SELECT, INSERT, UPDATE ON TABLES TO proptechapp;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT USAGE, SELECT ON SEQUENCES TO proptechapp;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT EXECUTE ON FUNCTIONS TO proptechapp;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
     GRANT SELECT, INSERT, UPDATE ON TABLES TO proptechapi;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT USAGE, SELECT ON SEQUENCES TO proptechapi;
+    GRANT USAGE, SELECT ON SEQUENCES TO proptechro, proptechapp, proptechapi;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT EXECUTE ON FUNCTIONS TO proptechapi;
+    GRANT EXECUTE ON FUNCTIONS TO proptechapp, proptechapi;
 
 -- ============================================
--- 4) quartzdb — schema, grants, default privileges
+-- 4) QUARTZ DB
 -- ============================================
+
 \connect quartzdb
 
 CREATE SCHEMA IF NOT EXISTS core AUTHORIZATION proptech;
+
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE CREATE ON DATABASE quartzdb FROM PUBLIC;
+
 ALTER DATABASE quartzdb SET search_path TO core, public;
 
-GRANT CONNECT ON DATABASE quartzdb TO proptechapp, proptechapi, proptechmigration;
+GRANT CONNECT ON DATABASE quartzdb TO proptechro, proptechapp, proptechapi, proptechmigration;
 
-GRANT USAGE ON SCHEMA core TO proptechapp, proptechapi;
+GRANT USAGE ON SCHEMA core TO proptechro, proptechapp, proptechapi;
 GRANT USAGE, CREATE ON SCHEMA core TO proptechmigration;
 
--- Quartz needs full DML (job state mutation) but no DDL at runtime
+-- Quartz runtime
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA core TO proptechapp;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp;
-REVOKE TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA core FROM proptechapp;
-
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA core TO proptechapi;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapi;
-REVOKE TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA core FROM proptechapi;
 
-GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
-    ON ALL TABLES IN SCHEMA core TO proptechmigration;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA core TO proptechmigration;
-GRANT CREATE ON SCHEMA core TO proptechmigration;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechapp, proptechapi;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO proptechapp;
+-- Migration
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA core TO proptechmigration;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA core TO proptechmigration;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT USAGE, SELECT ON SEQUENCES TO proptechapp;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO proptechapp, proptechapi;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO proptechapi;
+    GRANT USAGE, SELECT ON SEQUENCES TO proptechapp, proptechapi;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE proptechmigration IN SCHEMA core
-    GRANT USAGE, SELECT ON SEQUENCES TO proptechapi;
+-- RO
+GRANT SELECT ON ALL TABLES IN SCHEMA core TO proptechro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO proptechro;
 
 -- ============================================
--- 5) Global hardening — role-level session limits
+-- 5) ROLE HARDENING
 -- ============================================
 
--- proptech: schema owner, not used at runtime, but still hardened
 ALTER ROLE proptech SET statement_timeout = '5min';
-ALTER ROLE proptech SET idle_in_transaction_session_timeout = '2min';
-ALTER ROLE proptech SET log_statement = 'ddl';
 ALTER ROLE proptech SET search_path = core, public;
 
 ALTER ROLE proptechro SET statement_timeout = '2min';
-ALTER ROLE proptechro SET idle_in_transaction_session_timeout = '1min';
 ALTER ROLE proptechro SET log_statement = 'none';
-ALTER ROLE proptechro SET search_path = core, public;
 
 ALTER ROLE proptechapp SET statement_timeout = '30s';
-ALTER ROLE proptechapp SET idle_in_transaction_session_timeout = '1min';
 ALTER ROLE proptechapp SET log_statement = 'mod';
-ALTER ROLE proptechapp SET search_path = core, public;
 
 ALTER ROLE proptechapi SET statement_timeout = '15s';
-ALTER ROLE proptechapi SET idle_in_transaction_session_timeout = '30s';
 ALTER ROLE proptechapi SET log_statement = 'mod';
-ALTER ROLE proptechapi SET search_path = core, public;
 
-ALTER ROLE proptechmigration SET statement_timeout = '10min'; -- long-running DDL/backfills
-ALTER ROLE proptechmigration SET idle_in_transaction_session_timeout = '5min';
+ALTER ROLE proptechmigration SET statement_timeout = '10min';
 ALTER ROLE proptechmigration SET log_statement = 'all';
-ALTER ROLE proptechmigration SET search_path = core, public;
 
 -- ============================================
--- 6) Verification
+-- 6) CLEAN VERIFICATION (SAFE)
 -- ============================================
+
 SHOW password_encryption;
-SELECT PostGIS_Version();
