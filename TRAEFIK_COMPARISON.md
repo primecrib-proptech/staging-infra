@@ -336,7 +336,7 @@ docker stack deploy -c docker-stack.yml prod-infra
 ### Manual File-Based Deployment
 ```bash
 # For staging
-rm -f traefik/dynamic/traefik_routers_production.yml
+rm -f traefik/dynamic/traefik_routers_prod.yml
 docker stack deploy -c docker-stack.yml staging-infra
 
 # For production

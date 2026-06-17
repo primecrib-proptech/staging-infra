@@ -147,7 +147,7 @@ chmod +x deploy.sh
 ### Option 3: Manual File Management
 ```bash
 # For staging
-rm traefik/dynamic/traefik_routers_production.yml
+rm traefik/dynamic/traefik_routers_prod.yml
 docker stack deploy -c docker-stack.yml staging-infra
 ```
 

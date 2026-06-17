@@ -110,7 +110,7 @@ docker stack deploy -c docker-stack.yml prod-infra
 
 1. For staging, keep only staging config:
 ```bash
-rm traefik/dynamic/traefik_routers_production.yml
+rm traefik/dynamic/traefik_routers_prod.yml
 docker stack deploy -c docker-stack.yml staging-infra
 ```
 
@@ -128,7 +128,7 @@ docker stack deploy -c docker-stack.yml prod-infra
 ln -sf traefik_routers_staging.yml traefik/dynamic/traefik_routers.yml
 
 # For production
-ln -sf traefik_routers_production.yml traefik/dynamic/traefik_routers.yml
+ln -sf traefik_routers_prod.yml traefik/dynamic/traefik_routers.yml
 ```
 
 2. Deploy normally:

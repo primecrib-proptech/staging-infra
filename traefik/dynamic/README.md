@@ -24,7 +24,7 @@ traefik:
 
 **Option 2: Keep only staging file**
 ```bash
-rm traefik_routers_production.yml
+rm traefik_routers_prod.yml
 # Keep only traefik_routers_staging.yml
 ```
 
@@ -34,7 +34,7 @@ rm traefik_routers_production.yml
 traefik:
   image: traefik:v3.6.13
   volumes:
-    - ./traefik/dynamic/traefik_routers_production.yml:/etc/traefik/dynamic/traefik_routers.yml:ro
+    - ./traefik/dynamic/traefik_routers_prod.yml:/etc/traefik/dynamic/traefik_routers.yml:ro
 ```
 
 ## Key Differences
@@ -99,7 +99,7 @@ This means all `.yml` files are loaded. Use naming convention to load only one:
 
 1. **For Staging:**
    ```bash
-   rm traefik/dynamic/traefik_routers_production.yml
+   rm traefik/dynamic/traefik_routers_prod.yml
    docker stack deploy -c docker-stack.yml staging-infra
    ```
 
