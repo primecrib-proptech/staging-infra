@@ -57,25 +57,9 @@ REVOKE CREATE ON DATABASE proptechdb FROM PUBLIC;
 
 ALTER DATABASE proptechdb SET search_path TO core, public;
 
--- Extensions (ONLY here)
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
-
--- SAFE PostGIS verification (only if installed)
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM pg_extension WHERE extname = 'postgis'
-    ) THEN
-        RAISE NOTICE 'PostGIS installed successfully';
-    END IF;
-END $$;
-
 -- ============================================
 -- GRANTS (proptechdb)
 -- ============================================
-
 GRANT CONNECT ON DATABASE proptechdb TO proptechro, proptechapp, proptechapi, proptechmigration;
 
 GRANT USAGE ON SCHEMA core TO proptechro, proptechapp, proptechapi;
@@ -183,3 +167,9 @@ ALTER ROLE proptechmigration SET log_statement = 'all';
 -- ============================================
 
 SHOW password_encryption;
+
+\connect proptechdb
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+SELECT PostGIS_Version();
