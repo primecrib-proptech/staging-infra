@@ -1,26 +1,32 @@
 #!/bin/sh
 set -eu
 
-export DB_PASSWORD=$(cat /run/secrets/db_password) #DB Owner password
-export DB_RO_PASSWORD=$(cat /run/secrets/db_ro_password)
-export DB_APP_PASSWORD=$(cat /run/secrets/db_app_password)
-export DB_API_PASSWORD=$(cat /run/secrets/db_api_password)
-export DB_MIGRATION_PASSWORD=$(cat /run/secrets/db_migration_password)
+read_secret() {
+  file="$1"
 
-# Wait for PostgreSQL to be ready
+  if [ ! -f "$file" ]; then
+    echo "Missing secret: $file"
+    exit 1
+  fi
+
+  cat "$file"
+}
+
+export DB_OWNER_PASSWORD=$(read_secret /run/secrets/db_password)
+export DB_RO_PASSWORD=$(read_secret /run/secrets/db_ro_password)
+export DB_APP_PASSWORD=$(read_secret /run/secrets/db_app_password)
+export DB_API_PASSWORD=$(read_secret /run/secrets/db_api_password)
+export DB_MIGRATION_PASSWORD=$(read_secret /run/secrets/db_migration_password)
+
 until pg_isready -U postgres; do
   echo "Waiting for PostgreSQL to start..."
   sleep 2
 done
 
-# Run the SQL initialization template with variable substitution
-psql -v DB_PASSWORD="$DB_PASSWORD" \
-     -f /docker-entrypoint-initdb.d/init.sql.template
-
-
-## Run the SQL initialization template with variable substitution
- #psql -U postgres -v PROPTECH_PASSWORD="$PROPTECH_PASSWORD" \
- #     -v AUDIT_PASSWORD="$AUDIT_PASSWORD" \
- #     -v VAULT_PASSWORD="$VAULT_PASSWORD" \
- #     -v QUARTZ_PASSWORD="$QUARTZ_PASSWORD" \
- #     -f /docker-entrypoint-initdb.d/init.sql.template
+psql -U postgres -d postgres \
+    -v DB_OWNER_PASSWORD="$DB_OWNER_PASSWORD" \
+    -v DB_RO_PASSWORD="$DB_RO_PASSWORD" \
+    -v DB_APP_PASSWORD="$DB_APP_PASSWORD" \
+    -v DB_API_PASSWORD="$DB_API_PASSWORD" \
+    -v DB_MIGRATION_PASSWORD="$DB_MIGRATION_PASSWORD" \
+    -f /docker-entrypoint-initdb.d/init.sql.template
