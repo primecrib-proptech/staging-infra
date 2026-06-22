@@ -178,7 +178,6 @@ jobs:
           echo "Deploying backup:   $BACKUP_DIGEST"
 
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
-#          export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
           ./deploy.sh prod
