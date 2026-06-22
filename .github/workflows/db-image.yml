@@ -164,20 +164,21 @@ jobs:
             bash << 'ENDSSH'
           set -euo pipefail
 
-          # Write credentials directly to Docker config — avoids the non-TTY
-          # interactive login error entirely. Base64-encodes user:token as Docker
-          # expects, identical to what docker login would write to disk anyway.
+          # tr -d '\n' strips line breaks regardless of base64 version on the host
+          GHCR_AUTH=$(printf '%s' "$GITHUB_ACTOR:$GHCR_PAT" | base64 | tr -d '\n')
+          
+          # Write Docker config with no leading whitespace in the JSON —
+          # indented heredocs carry their indentation into the file content.
           mkdir -p /root/.docker
-          GHCR_AUTH=$(echo -n "$GITHUB_ACTOR:$GHCR_PAT" | base64 -w 0)
-          cat > /root/.docker/config.json << EOF
-          {
-            "auths": {
-              "ghcr.io": {
-                "auth": "$GHCR_AUTH"
-              }
-            }
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$GHCR_AUTH" \
+          > /root/.docker/config.json
+          
+          # Verify auth resolves before attempting pulls
+          echo "Verifying GHCR auth..."
+          docker manifest inspect "$POSTGRES_IMAGE" > /dev/null || {
+          echo "GHCR auth failed — check PAT scope (read:packages) and package visibility"
+          exit 1
           }
-          EOF
 
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
@@ -193,7 +194,7 @@ jobs:
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
 
           cd /opt/containers/staging-infra \
-            && git pull \
+            && git pull origin main \
             && ./deploy.sh prod
           ENDSSH
 
