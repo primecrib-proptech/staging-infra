@@ -162,23 +162,26 @@ jobs:
             REGISTRY="${{ env.REGISTRY }}" \
             REPO_OWNER="${{ github.repository_owner }}" \
             bash << 'ENDSSH'
-          # FIX #6 — exit immediately if any command fails so a bad git pull
-          # or failed docker pull never silently falls through to deploy.sh.
           set -euo pipefail
 
-          # FIX #3 — single login using the long-lived GHCR_PAT only.
-          # GITHUB_TOKEN is scoped to the Actions runner and is not valid
-          # on the VPS — removing the redundant GITHUB_TOKEN login.
-          echo "$GHCR_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          # Write credentials directly to Docker config — avoids the non-TTY
+          # interactive login error entirely. Base64-encodes user:token as Docker
+          # expects, identical to what docker login would write to disk anyway.
+          mkdir -p /root/.docker
+          GHCR_AUTH=$(echo -n "$GITHUB_ACTOR:$GHCR_PAT" | base64 -w 0)
+          cat > /root/.docker/config.json << EOF
+          {
+            "auths": {
+              "ghcr.io": {
+                "auth": "$GHCR_AUTH"
+              }
+            }
+          }
+          EOF
 
-          # Pull both images explicitly so we can resolve their digests
-          # before deploy, ensuring every Swarm node gets the exact same layers.
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
-          # Resolve tags to immutable sha256 digests.
-          # Deploying by digest eliminates the "each node may pull a different
-          # version" Swarm warning — digest is cryptographically pinned.
           POSTGRES_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$POSTGRES_IMAGE")
           BACKUP_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
             "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG")
@@ -189,8 +192,6 @@ jobs:
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
 
-          # FIX #4 — heredoc indentation was inconsistent in the original.
-          # All commands are now at a uniform level and readable.
           cd /opt/containers/staging-infra \
             && git pull \
             && ./deploy.sh prod
