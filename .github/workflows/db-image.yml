@@ -153,36 +153,19 @@ jobs:
           ssh-keyscan -H -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy DB stack
-
         run: |
-               ssh -i ~/.ssh/id_rsa \
-               -o StrictHostKeyChecking=no \
-               -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-                  POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
-                  BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
-                  GHCR_PAT="${{ secrets.GHCR_PAT }}" \
-                  GITHUB_ACTOR="${{ github.actor }}" \
-                  REGISTRY="${{ env.REGISTRY }}" \
-                  REPO_OWNER="${{ github.repository_owner }}" \
-                  bash << 'ENDSSH'
-               
-               set -e
-          
-          # Login to GitHub Container Registry
-               echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
-          
-          
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
+            BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
+            GHCR_PAT="${{ secrets.GHCR_PAT }}" \
+            GITHUB_ACTOR="${{ github.actor }}" \
+            REGISTRY="${{ env.REGISTRY }}" \
+            REPO_OWNER="${{ github.repository_owner }}" \
+            bash << 'ENDSSH'
+          set -euo pipefail
 
-#                  run: |
-#          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-#            POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
-#            BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
-#            GHCR_PAT="${{ secrets.GHCR_PAT }}" \
-#            GITHUB_ACTOR="${{ github.actor }}" \
-#            REGISTRY="${{ env.REGISTRY }}" \
-#            REPO_OWNER="${{ github.repository_owner }}" \
-#            bash << 'ENDSSH'
-#          set -euo pipefail
+          # Login to GitHub Container Registry
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
