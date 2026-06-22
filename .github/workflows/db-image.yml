@@ -157,7 +157,7 @@ jobs:
           ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
             BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
-            GHCR_PAT="${{ secrets.GITHUB_TOKEN }}" \
+            GHCR_PAT="${{ secrets.GHCR_PAT }}" \
             GITHUB_ACTOR="${{ github.actor }}" \
             REGISTRY="${{ env.REGISTRY }}" \
             REPO_OWNER="${{ github.repository_owner }}" \
@@ -178,11 +178,10 @@ jobs:
           echo "Deploying backup:   $BACKUP_DIGEST"
 
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
-          export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
+#          export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
+          export POSTGRES_BACKUP_IMAGE="$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
-          cd /opt/containers/staging-infra \
-            && git pull origin main \
-            && ./deploy.sh prod
+          ./deploy.sh prod
           ENDSSH
 
 
