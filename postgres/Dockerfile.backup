@@ -1,18 +1,25 @@
-# Backup runner: same Postgres image as server so pg_dump version matches exactly.
-# Server uses postgis/postgis:16-3.5; we add awscli + cron only.
-FROM postgis/postgis:16-3.5
+# =============================================================================
+# Dockerfile.backup
+#
+# IMPORTANT: must use the SAME base image as Dockerfile.postgres so that
+# pg_dump version matches the running server exactly. A version mismatch
+# between pg_dump and the server causes backup corruption or errors.
+# =============================================================================
+FROM ghcr.io/primecrib-proptech/primecrib-postgres:16-3.5-0.8.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     awscli \
     cron \
     gzip \
     gnupg \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /var/backups/postgres /var/log && touch /var/log/pg_backup.log
+RUN mkdir -p /var/backups/postgres /var/log \
+    && touch /var/log/pg_backup.log
 
 COPY cron.backup /etc/cron.d/pg-backup
-RUN chmod 0644 /etc/cron.d/pg-backup && \
-    crontab /etc/cron.d/pg-backup
+RUN chmod 0644 /etc/cron.d/pg-backup \
+    && crontab /etc/cron.d/pg-backup
 
 CMD ["cron", "-f"]

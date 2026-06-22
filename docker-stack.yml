@@ -116,7 +116,6 @@ services:
       - ./postgres/init.sql.template:/docker-entrypoint-initdb.d/init.sql.template:ro
       - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
     networks:
-      - traefik-public
       - backend
     secrets:
       - db_name

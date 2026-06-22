@@ -1,0 +1,179 @@
+name: Build & Push Postgres Image
+
+# Rebuild the custom DB image only when something that affects it changes.
+# The app deployment workflow is separate and references the image by tag.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'postgres/Dockerfile.postgres'
+      - 'postgres/Dockerfile.backup'
+      - '.github/workflows/db-image.yml'
+  workflow_dispatch:
+    inputs:
+      pgvector_version:
+        description: 'pgvector version to build (e.g. 0.8.0)'
+        required: false
+        default: '0.8.0'
+
+env:
+  REGISTRY: ghcr.io
+  PG_MAJOR: "16"
+  POSTGIS_VERSION: "3.5"
+  PGVECTOR_VERSION: ${{ github.event.inputs.pgvector_version || '0.8.0' }}
+
+jobs:
+  build-postgres-image:
+    name: Build primecrib-postgres
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Compose image version tag
+        id: version
+        run: |
+          # Tag format: <pg>-<postgis>-<pgvector>-<short-sha>
+          # The version triple makes it immediately obvious what's in the image.
+          # The SHA ties it back to an exact commit for auditability.
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="${{ env.PG_MAJOR }}-${{ env.POSTGIS_VERSION }}-${{ env.PGVECTOR_VERSION }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "full_tag=$VERSION-$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Docker metadata — postgres
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres
+          tags: |
+            type=raw,value=${{ steps.version.outputs.full_tag }}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+
+      - name: Build and push primecrib-postgres
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./postgres
+          file: ./postgres/Dockerfile.postgres
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PG_MAJOR=${{ env.PG_MAJOR }}
+            POSTGIS_VERSION=${{ env.POSTGIS_VERSION }}
+            PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}
+          # Layer cache: reuse builder stage across runs so pgvector compile
+          # only re-runs when the version arg or Dockerfile changes.
+          cache-from: type=gha,scope=postgres-image
+          cache-to: type=gha,mode=max,scope=postgres-image
+          # Sign the image digest for supply-chain auditability (optional but recommended)
+          provenance: true
+          sbom: true
+
+      - name: Docker metadata — backup
+        id: meta-backup
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres-backup
+          tags: |
+            type=raw,value=${{ steps.version.outputs.full_tag }}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+
+      - name: Build and push primecrib-postgres-backup
+        uses: docker/build-push-action@v5
+        with:
+          context: ./postgres
+          file: ./postgres/Dockerfile.backup
+          push: true
+          tags: ${{ steps.meta-backup.outputs.tags }}
+          labels: ${{ steps.meta-backup.outputs.labels }}
+          # Build backup image after postgres image so it can reference the
+          # same version. Backup Dockerfile's FROM must use the same tag.
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres:${{ steps.version.outputs.full_tag }}
+          cache-from: type=gha,scope=backup-image
+          cache-to: type=gha,mode=max,scope=backup-image
+
+      - name: Output image tags for downstream workflows
+        run: |
+          echo "### 🐘 Postgres image built" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "POSTGRES_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres:${{ steps.version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "POSTGRES_BACKUP_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "Digest: ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy-db-stack:
+    name: Deploy DB stack to Swarm
+    runs-on: ubuntu-latest
+    needs: build-postgres-image
+    if: github.ref_name == 'master'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy stack file to VPS
+        run: |
+          scp -P ${{ secrets.VPS_PORT }} \
+            docker-stack-db.yml \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/docker-stack-db.yml
+
+      - name: Deploy DB stack
+        run: |
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
+            echo "${{ secrets.GITHUB_TOKEN }}" | \
+              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            export POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}"
+            export POSTGRES_BACKUP_IMAGE="ghcr.io/${{ github.repository_owner }}/primecrib-postgres-backup:latest"
+
+            docker stack deploy \
+              -c /tmp/docker-stack-db.yml \
+              --with-registry-auth \
+              --prune \
+              primecrib-db
+
+            # Postgres is stateful — update_config.order=stop-first in the stack
+            # file handles safe rolling, so we do NOT force-update here.
+            # Just verify the service is healthy after deploy.
+            sleep 15
+            docker service ls --filter name=primecrib-db_postgres
+            rm -f /tmp/docker-stack-db.yml
+          ENDSSH
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa

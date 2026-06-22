@@ -104,19 +104,20 @@ services:
         - "traefik.enable=true"
 
   postgres:
-    image: postgis/postgis:16-3.5
+    image: ${POSTGRES_IMAGE:-ghcr.io/primecrib-proptech/primecrib-postgres:16-3.5-0.8.0}
     environment:
       POSTGRES_DB_FILE: /run/secrets/db_name
       POSTGRES_USER_FILE: /run/secrets/db_user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+      TZ: Africa/Lagos
+      PGTZ: Africa/Lagos
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
       - ./postgres/init.sql.template:/docker-entrypoint-initdb.d/init.sql.template:ro
       - ./postgres/postgresql.conf.custom:/etc/postgresql/postgresql.conf:ro
     networks:
-      - traefik-public
       - backend
     secrets:
       - db_name
@@ -143,15 +144,25 @@ services:
         reservations:
           cpus: '1'
           memory: 1G
+      update_config:
+        # Postgres is stateful; stop the old task before starting the new one.
+        # Never run two postgres replicas simultaneously against the same data dir.
+        order: stop-first
+        failure_action: rollback
+        delay: 5s
+      rollback_config:
+        order: stop-first
+        failure_action: pause
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s   # Give initdb time to complete before health checks count
 
   # Build image first: docker build -t postgres-backup:latest -f postgres/Dockerfile.backup postgres/
   postgres-backup:
-    image: postgres-backup:latest
+    image: ${POSTGRES_BACKUP_IMAGE:-ghcr.io/primecrib-proptech/primecrib-postgres-backup:16-3.5-0.8.0}
     volumes:
       - ./postgres/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
       - postgres_backup_data:/var/backups/postgres
@@ -174,6 +185,13 @@ services:
       placement:
         constraints:
           - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   rabbitmq:
     image: rabbitmq:4.2.0-management

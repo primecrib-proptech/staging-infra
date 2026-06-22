@@ -1,0 +1,76 @@
+# syntax=docker/dockerfile:1.6
+# =============================================================================
+# Dockerfile.postgres
+#
+# Production-grade PostgreSQL 16 image with:
+#   - PostGIS 3.5  (spatial queries)
+#   - pgvector     (vector similarity / AI embeddings)
+#
+# Build:
+#   docker build -t ghcr.io/<owner>/primecrib-postgres:16-3.5-0.8.0 \
+#                -f postgres/Dockerfile.postgres postgres/
+#
+# Why a builder stage?
+#   pgvector must be compiled from source. The build toolchain (gcc, make,
+#   postgresql-server-dev-16, git) is ~300 MB and not needed at runtime.
+#   We compile in `builder`, then COPY only the compiled .so + sql files
+#   into the lean final image. This keeps the production image small and
+#   free of build tools (smaller attack surface).
+# =============================================================================
+
+ARG PG_MAJOR=16
+ARG POSTGIS_VERSION=3.5
+ARG PGVECTOR_VERSION=0.8.0
+
+# ── Stage 1: compile pgvector ─────────────────────────────────────────────────
+FROM postgres:${PG_MAJOR} AS builder
+
+ARG PGVECTOR_VERSION
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    postgresql-server-dev-${PG_MAJOR} \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pin to a specific release tag — never build from HEAD in production.
+RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 \
+        https://github.com/pgvector/pgvector.git /pgvector \
+    && cd /pgvector \
+    && make OPTFLAGS="" \
+    && make install
+
+# ── Stage 2: final production image ──────────────────────────────────────────
+FROM postgis/postgis:${PG_MAJOR}-${POSTGIS_VERSION}
+
+ARG PG_MAJOR
+ARG PGVECTOR_VERSION
+
+LABEL org.opencontainers.image.title="primecrib-postgres"
+LABEL org.opencontainers.image.description="PostgreSQL ${PG_MAJOR} + PostGIS + pgvector ${PGVECTOR_VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/primecrib/staging-infra"
+
+# Copy only the compiled pgvector artifacts from the builder stage.
+# No compiler, no git, no build headers — just the shared library and SQL.
+COPY --from=builder \
+    /usr/lib/postgresql/${PG_MAJOR}/lib/vector.so \
+    /usr/lib/postgresql/${PG_MAJOR}/lib/
+
+COPY --from=builder \
+    /usr/share/postgresql/${PG_MAJOR}/extension/vector* \
+    /usr/share/postgresql/${PG_MAJOR}/extension/
+
+# Runtime dependencies only (libgomp is needed by pgvector for SIMD parallelism)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Africa/Lagos
+ENV PGTZ=Africa/Lagos
+
+# Verify both extensions are resolvable at image build time so a broken image
+# fails the build rather than failing at runtime in production.
+RUN pg_config --sharedir \
+    && ls /usr/share/postgresql/${PG_MAJOR}/extension/postgis*.control \
+    && ls /usr/share/postgresql/${PG_MAJOR}/extension/vector.control
