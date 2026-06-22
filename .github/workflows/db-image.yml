@@ -133,3 +133,43 @@ jobs:
           echo "POSTGRES_BACKUP_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "Digest: ${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy DB stack
+        run: |
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
+          
+          # Authenticate to GHCR on the manager node
+          echo "${{ secrets.GHCR_PAT }}" | \
+           docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Pull both images explicitly on the manager first — this caches them
+          # locally and lets us resolve the exact sha256 digest before deploying.
+          docker pull ${{ needs.build-postgres-image.outputs.image_tag }}
+          docker pull ghcr.io/primecrib-proptech/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }}
+          
+          # Resolve tags to immutable sha256 digests
+          POSTGRES_DIGEST=\$(docker inspect --format='{{index .RepoDigests 0}}' \
+           ${{ needs.build-postgres-image.outputs.image_tag }})
+          
+          BACKUP_DIGEST=\$(docker inspect --format='{{index .RepoDigests 0}}' \
+           ghcr.io/primecrib-proptech/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }})
+          
+          echo "Deploying postgres: \$POSTGRES_DIGEST"
+          echo "Deploying backup:   \$BACKUP_DIGEST"
+          
+          export POSTGRES_IMAGE="\$POSTGRES_DIGEST"
+          export POSTGRES_BACKUP_IMAGE="\$BACKUP_DIGEST"
+          
+           # Pull latest infra config and deploy
+          cd /opt/containers/staging-infra \
+            && git pull \
+            && ./deploy.sh prod
+          
+          sleep 15
+          docker service ls --filter name=primecrib-db_postgres
+          rm -f /tmp/docker-stack-db.yml
+          ENDSSH
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
