@@ -178,7 +178,7 @@ jobs:
           echo "Deploying backup:   $BACKUP_DIGEST"
 
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
-          export POSTGRES_BACKUP_IMAGE="$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
+          export POSTGRES_BACKUP_IMAGE="$POSTGRES_BACKUP_DIGEST"
 
           cd /opt/containers/staging-infra \
             && git pull origin main \
