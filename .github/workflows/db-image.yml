@@ -49,6 +49,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
+          driver-opts: |
+            network=host
+
+      - name: Download pgvector source
+        run: |
+          curl -fsSL \
+            https://github.com/pgvector/pgvector/archive/refs/tags/v${{ env.PGVECTOR_VERSION }}.tar.gz \
+            -o postgres/pgvector.tar.gz
 
       - name: Compose image version tag
         id: version

@@ -29,16 +29,19 @@ ARG PGVECTOR_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    git \
     postgresql-server-dev-${PG_MAJOR} \
     && rm -rf /var/lib/apt/lists/*
 
-# Pin to a specific release tag — never build from HEAD in production.
-RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 \
-        https://github.com/pgvector/pgvector.git /pgvector \
-    && cd /pgvector \
+# Tarball is downloaded by CI before docker build and passed in via context.
+# No network access needed inside the build container — more reliable and
+# works in air-gapped / network-restricted build environments.
+COPY pgvector.tar.gz /tmp/pgvector.tar.gz
+
+RUN tar -xzf /tmp/pgvector.tar.gz -C /tmp \
+    && cd /tmp/pgvector-${PGVECTOR_VERSION} \
     && make OPTFLAGS="" \
-    && make install
+    && make install \
+    && rm -rf /tmp/pgvector*
 
 # ── Stage 2: final production image ──────────────────────────────────────────
 FROM postgis/postgis:${PG_MAJOR}-${POSTGIS_VERSION}
