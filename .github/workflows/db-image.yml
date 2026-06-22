@@ -1,7 +1,5 @@
 name: Build & Push Postgres Image
 
-# Rebuild the custom DB image only when something that affects it changes.
-# The app deployment workflow is separate and references the image by tag.
 on:
   push:
     branches: [main]
@@ -31,7 +29,16 @@ jobs:
       packages: write
 
     outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
+      # FIX #2 — expose full_tag as a job-level output so the deploy job
+      # can reference it via needs.build-postgres-image.outputs.full_tag.
+      # steps.version.outputs.* is NOT accessible across jobs — only job
+      # outputs are; step outputs stay scoped to their own job.
+      full_tag: ${{ steps.version.outputs.full_tag }}
+      # FIX #5 — expose a single deterministic image reference, not the full
+      # multi-line metadata-action output. steps.meta.outputs.tags is
+      # newline-separated when multiple tags are defined; passing that to
+      # docker pull would fail. We build the tag string explicitly instead.
+      image_tag: ${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres:${{ steps.version.outputs.full_tag }}
       image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
@@ -57,13 +64,11 @@ jobs:
           curl -fsSL \
             https://github.com/pgvector/pgvector/archive/refs/tags/v${{ env.PGVECTOR_VERSION }}.tar.gz \
             -o postgres/pgvector.tar.gz
+          test -s postgres/pgvector.tar.gz || (echo "pgvector tarball is empty or missing" && exit 1)
 
       - name: Compose image version tag
         id: version
         run: |
-          # Tag format: <pg>-<postgis>-<pgvector>-<short-sha>
-          # The version triple makes it immediately obvious what's in the image.
-          # The SHA ties it back to an exact commit for auditability.
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           VERSION="${{ env.PG_MAJOR }}-${{ env.POSTGIS_VERSION }}-${{ env.PGVECTOR_VERSION }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -92,11 +97,8 @@ jobs:
             PG_MAJOR=${{ env.PG_MAJOR }}
             POSTGIS_VERSION=${{ env.POSTGIS_VERSION }}
             PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}
-          # Layer cache: reuse builder stage across runs so pgvector compile
-          # only re-runs when the version arg or Dockerfile changes.
           cache-from: type=gha,scope=postgres-image
           cache-to: type=gha,mode=max,scope=postgres-image
-          # Sign the image digest for supply-chain auditability (optional but recommended)
           provenance: true
           sbom: true
 
@@ -118,8 +120,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-backup.outputs.tags }}
           labels: ${{ steps.meta-backup.outputs.labels }}
-          # Build backup image after postgres image so it can reference the
-          # same version. Backup Dockerfile's FROM must use the same tag.
           build-args: |
             BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres:${{ steps.version.outputs.full_tag }}
           cache-from: type=gha,scope=backup-image
@@ -127,7 +127,7 @@ jobs:
 
       - name: Output image tags for downstream workflows
         run: |
-          echo "### 🐘 Postgres image built" >> $GITHUB_STEP_SUMMARY
+          echo "### Postgres image built" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "POSTGRES_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres:${{ steps.version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "POSTGRES_BACKUP_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }}" >> $GITHUB_STEP_SUMMARY
@@ -138,14 +138,13 @@ jobs:
     name: Deploy DB stack to Swarm
     runs-on: ubuntu-latest
     needs: build-postgres-image
-    if: github.ref_name == 'master'
+    # FIX #1 — was 'master' but the push trigger above is 'main'.
+    # These must match or the deploy job is always skipped.
+    if: github.ref_name == 'main'
     environment:
       name: production
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -155,35 +154,46 @@ jobs:
 
       - name: Deploy DB stack
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
-            echo "${{ secrets.GITHUB_TOKEN }}" | \
-              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
+            BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
+            GHCR_PAT="${{ secrets.GHCR_PAT }}" \
+            GITHUB_ACTOR="${{ github.actor }}" \
+            REGISTRY="${{ env.REGISTRY }}" \
+            REPO_OWNER="${{ github.repository_owner }}" \
+            bash << 'ENDSSH'
+          # FIX #6 — exit immediately if any command fails so a bad git pull
+          # or failed docker pull never silently falls through to deploy.sh.
+          set -euo pipefail
 
-          # Authenticate to GHCR on the manager node
-          echo "${{ secrets.GHCR_PAT }}" | \
-            docker login ghcr.io -u ${{ github.actor }} --password-stdin
-    
-          # Pull both images explicitly and resolve to immutable digests
-          docker pull ${{ needs.build-postgres-image.outputs.image_tag }}
-          docker pull ghcr.io/primecrib-proptech/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }}
-    
-          POSTGRES_DIGEST=\$(docker inspect --format='{{index .RepoDigests 0}}' \
-          ${{ needs.build-postgres-image.outputs.image_tag }})
-    
-          BACKUP_DIGEST=\$(docker inspect --format='{{index .RepoDigests 0}}' \
-          ghcr.io/primecrib-proptech/primecrib-postgres-backup:${{ steps.version.outputs.full_tag }})
-    
-          echo "Deploying postgres: \$POSTGRES_DIGEST"
-          echo "Deploying backup:   \$BACKUP_DIGEST"
-    
-          export POSTGRES_IMAGE="\$POSTGRES_DIGEST"
-          export POSTGRES_BACKUP_IMAGE="\$BACKUP_DIGEST"
+          # FIX #3 — single login using the long-lived GHCR_PAT only.
+          # GITHUB_TOKEN is scoped to the Actions runner and is not valid
+          # on the VPS — removing the redundant GITHUB_TOKEN login.
+          echo "$GHCR_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
-            # Pull latest infra config and deploy
-            cd /opt/containers/staging-infra \
-              && git pull \
-              && ./deploy.sh prod
+          # Pull both images explicitly so we can resolve their digests
+          # before deploy, ensuring every Swarm node gets the exact same layers.
+          docker pull "$POSTGRES_IMAGE"
+          docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
+          # Resolve tags to immutable sha256 digests.
+          # Deploying by digest eliminates the "each node may pull a different
+          # version" Swarm warning — digest is cryptographically pinned.
+          POSTGRES_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$POSTGRES_IMAGE")
+          BACKUP_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
+            "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG")
+
+          echo "Deploying postgres: $POSTGRES_DIGEST"
+          echo "Deploying backup:   $BACKUP_DIGEST"
+
+          export POSTGRES_IMAGE="$POSTGRES_DIGEST"
+          export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
+
+          # FIX #4 — heredoc indentation was inconsistent in the original.
+          # All commands are now at a uniform level and readable.
+          cd /opt/containers/staging-infra \
+            && git pull \
+            && ./deploy.sh prod
           ENDSSH
 
       - name: Cleanup SSH key
