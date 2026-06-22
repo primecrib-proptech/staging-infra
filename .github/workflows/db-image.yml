@@ -157,7 +157,7 @@ jobs:
           ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             POSTGRES_IMAGE="${{ needs.build-postgres-image.outputs.image_tag }}" \
             BACKUP_TAG="${{ needs.build-postgres-image.outputs.full_tag }}" \
-            GHCR_PAT="${{ secrets.GHCR_PAT }}" \
+            GHCR_PAT="${{ secrets.GITHUB_TOKEN }}" \
             GITHUB_ACTOR="${{ github.actor }}" \
             REGISTRY="${{ env.REGISTRY }}" \
             REPO_OWNER="${{ github.repository_owner }}" \
@@ -165,7 +165,7 @@ jobs:
           set -euo pipefail
           
           # Login to GitHub Container Registry
-          echo "${{ secrets.GHCR_PAT }}" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
           
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
