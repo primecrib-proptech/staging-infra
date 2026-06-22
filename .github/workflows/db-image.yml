@@ -163,23 +163,7 @@ jobs:
             REPO_OWNER="${{ github.repository_owner }}" \
             bash << 'ENDSSH'
           set -euo pipefail
-
-          # tr -d '\n' strips line breaks regardless of base64 version on the host
-          GHCR_AUTH=$(printf '%s' "$GITHUB_ACTOR:$GHCR_PAT" | base64 | tr -d '\n')
           
-          # Write Docker config with no leading whitespace in the JSON —
-          # indented heredocs carry their indentation into the file content.
-          mkdir -p /root/.docker
-          printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$GHCR_AUTH" \
-          > /root/.docker/config.json
-          
-          # Verify auth resolves before attempting pulls
-          echo "Verifying GHCR auth..."
-          docker manifest inspect "$POSTGRES_IMAGE" > /dev/null || {
-          echo "GHCR auth failed — check PAT scope (read:packages) and package visibility"
-          exit 1
-          }
-
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
