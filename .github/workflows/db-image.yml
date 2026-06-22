@@ -136,7 +136,11 @@ jobs:
 
       - name: Deploy DB stack
         run: |
-          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << ENDSSH
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          
+          set -e
           
           # Authenticate to GHCR on the manager node
           echo "${{ secrets.GHCR_PAT }}" | \
