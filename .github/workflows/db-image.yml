@@ -180,7 +180,12 @@ jobs:
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
 
-          ./deploy.sh prod
+          cd /opt/containers/staging-infra \
+            && git pull origin main \
+            && ./deploy.sh prod
+          
+          docker service update --image $POSTGRES_IMAGE prod-infra_postgres --force
+          docker service update --image $POSTGRES_IMAGE prod-infra_postgres_backup --force
           ENDSSH
 
 
