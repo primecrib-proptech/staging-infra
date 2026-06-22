@@ -22,9 +22,16 @@ ARG PG_MAJOR=16
 ARG POSTGIS_VERSION=3.5
 ARG PGVECTOR_VERSION=0.8.0
 
-# ── Stage 1: compile pgvector ─────────────────────────────────────────────────
-FROM postgres:${PG_MAJOR} AS builder
+# Use the SAME base for both stages — guarantees GLIBC version used during
+# compilation exactly matches the runtime. This was the root cause:
+# builder was postgres:16 (newer GLIBC) while runtime was postgis:16-3.5
+# (older GLIBC), so vector.so required a symbol the runtime couldn't provide.
+ARG BASE_IMAGE=postgis/postgis:${PG_MAJOR}-${POSTGIS_VERSION}
 
+# ── Stage 1: compile pgvector ─────────────────────────────────────────────────
+FROM ${BASE_IMAGE} AS builder
+
+ARG PG_MAJOR
 ARG PGVECTOR_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,7 +51,7 @@ RUN tar -xzf /tmp/pgvector.tar.gz -C /tmp \
     && rm -rf /tmp/pgvector*
 
 # ── Stage 2: final production image ──────────────────────────────────────────
-FROM postgis/postgis:${PG_MAJOR}-${POSTGIS_VERSION}
+FROM ${BASE_IMAGE}
 
 ARG PG_MAJOR
 ARG PGVECTOR_VERSION
