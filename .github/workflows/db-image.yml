@@ -152,6 +152,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Copy deploy script
+        run: |
+          scp -P ${{ secrets.VPS_PORT }} deploy.sh \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/deploy.sh
+
       - name: Deploy DB stack
         run: |
           ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
@@ -165,7 +170,7 @@ jobs:
           set -euo pipefail
           
           # Login to GitHub Container Registry
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "$GHCR_PAT" | docker login "$REGISTRY" -u "$GITHUB_ACTOR" --password-stdin
           
           docker pull "$POSTGRES_IMAGE"
           docker pull "$REGISTRY/$REPO_OWNER/primecrib-postgres-backup:$BACKUP_TAG"
@@ -180,11 +185,16 @@ jobs:
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
 
-          cd /opt/containers/staging-infra \
-            && git pull origin main \
-            && ./deploy.sh prod
-          docker service update --image $POSTGRES_IMAGE prod-infra_postgres --force
-          docker service update --image $POSTGRES_BACKUP_IMAGE prod-infra_postgres_backup --force
+          ./deploy.sh prod
+          
+          # Wait for service to be ready before declaring success
+          echo "Waiting for postgres service to stabilize..."
+          timeout 120 bash -c \
+            'until docker service ls --filter name=prod-infra_postgres \
+              --format "{{.Replicas}}" | grep -q "1/1"; do sleep 3; done'
+      
+          echo "Deployment complete"
+    
           ENDSSH
 
 
