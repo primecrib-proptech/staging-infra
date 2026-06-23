@@ -189,8 +189,12 @@ jobs:
 
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
-
-          ~/deploy.sh prod
+          
+          # cd into the directory containing docker-stack-prod.yml BEFORE running deploy.sh
+          cd ~/staging-infra   # update this to wherever your stack files live on the server
+          cp ~/deploy.sh ./deploy.sh
+          chmod +x ./deploy.sh
+          ./deploy.sh prod
 
           echo "Waiting for postgres service to stabilize..."
           timeout 120 bash -c \
