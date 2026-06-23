@@ -69,7 +69,7 @@ echo "Deploying stack: $STACK_NAME"
 echo "Environment: $ENVIRONMENT"
 echo ""
 
-docker stack deploy -c "$DOCKER_COMPOSE_FILE" "$STACK_NAME"
+docker stack deploy -c "$DOCKER_COMPOSE_FILE" "$STACK_NAME" --with-registry-auth
 
 echo ""
 echo "=========================================="

@@ -198,16 +198,6 @@ jobs:
           
           cd /opt/containers/staging-infra
           ./deploy.sh prod
-
-          docker service update \
-            --image "$POSTGRES_IMAGE" \
-            --with-registry-auth \
-            prod-infra_postgres --force
-          
-          docker service update \
-            --image "$POSTGRES_BACKUP_IMAGE" \
-            --with-registry-auth \
-            prod-infra_postgres_backup --force
   
           echo "Waiting for postgres service to stabilize..."
           timeout 120 bash -c \
