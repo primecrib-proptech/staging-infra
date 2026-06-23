@@ -22,7 +22,7 @@ if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "prod" ]; then
     exit 1
 fi
 
-if [ "$EN$ENVIRONMENT" == "staging" ]; then
+if [ "$ENVIRONMENT" == "staging" ]; then
   DOCKER_COMPOSE_FILE="docker-stack.yml"
 else
   DOCKER_COMPOSE_FILE="docker-stack-prod.yml"

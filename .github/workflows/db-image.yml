@@ -153,15 +153,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy deploy script
+      - name: Copy deploy files to server
         run: |
+          # Copy deploy script
           scp -P ${{ secrets.VPS_PORT }} deploy.sh \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/deploy.sh
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/containers/staging-infra/deploy.sh
           
+          # Copy stack file
+          scp -P ${{ secrets.VPS_PORT }} docker-stack-prod.yml \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/containers/staging-infra/docker-stack-prod.yml
+          
+          # Make deploy script executable
           ssh -p ${{ secrets.VPS_PORT }} \
             -i ~/.ssh/id_rsa \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "chmod +x ~/deploy.sh"
+            "chmod +x /opt/containers/staging-infra/deploy.sh"
 
       - name: Deploy DB stack
         run: |
@@ -190,10 +196,7 @@ jobs:
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
           
-          # cd into the directory containing docker-stack-prod.yml BEFORE running deploy.sh
-          cd ~/staging-infra   # update this to wherever your stack files live on the server
-          cp ~/deploy.sh ./deploy.sh
-          chmod +x ./deploy.sh
+          cd /opt/containers/staging-infra
           ./deploy.sh prod
 
           echo "Waiting for postgres service to stabilize..."
