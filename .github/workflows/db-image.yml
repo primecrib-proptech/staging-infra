@@ -185,10 +185,7 @@ jobs:
           export POSTGRES_IMAGE="$POSTGRES_DIGEST"
           export POSTGRES_BACKUP_IMAGE="$BACKUP_DIGEST"
 
-          docker stack deploy \
-            -c ~/stacks/docker-compose.prod.yml \
-            prod-infra \
-            --with-registry-auth
+          ~/deploy.sh prod
           
           # Wait for service to be ready before declaring success
           echo "Waiting for postgres service to stabilize..."
