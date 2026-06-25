@@ -705,7 +705,6 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-
 # ────────────────────────────────
 # LOCAL PERSISTENT VOLUMES
 # ────────────────────────────────
