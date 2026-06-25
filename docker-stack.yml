@@ -831,7 +831,7 @@ volumes:
 networks:
   backend:
     driver: overlay
-    internal: true
+    external: true
     name: backend
   traefik-public:
     driver: overlay
