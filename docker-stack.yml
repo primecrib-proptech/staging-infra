@@ -850,6 +850,7 @@ networks:
     external: true
     name: observability
 
+
 secrets:
   db_name:
     external: true
