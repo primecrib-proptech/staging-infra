@@ -22,7 +22,7 @@ if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "prod" ]; then
     exit 1
 fi
 
-if [ "$EN$ENVIRONMENT" == "staging" ]; then
+if [ "$ENVIRONMENT" == "staging" ]; then
   DOCKER_COMPOSE_FILE="docker-stack.yml"
 else
   DOCKER_COMPOSE_FILE="docker-stack-prod.yml"
@@ -69,7 +69,7 @@ echo "Deploying stack: $STACK_NAME"
 echo "Environment: $ENVIRONMENT"
 echo ""
 
-docker stack deploy -c "$DOCKER_COMPOSE_FILE" "$STACK_NAME"
+docker stack deploy -c "$DOCKER_COMPOSE_FILE" "$STACK_NAME" --with-registry-auth
 
 echo ""
 echo "=========================================="
