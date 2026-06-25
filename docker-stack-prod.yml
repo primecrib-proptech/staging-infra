@@ -851,9 +851,11 @@ networks:
   backend:
     driver: overlay
     internal: true
+    name: backend
   traefik-public:
     driver: overlay
     external: true
+    name: traefik-public
   ci-network:
     driver: overlay
     external: false
@@ -862,8 +864,10 @@ networks:
   shared-network:
     driver: overlay
     external: true
+    name: shared-network
   observability:
     external: true
+    name: observability
 
 secrets:
   db_name:
