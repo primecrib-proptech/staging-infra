@@ -3,10 +3,6 @@ name: Build & Push Postgres Image
 on:
   push:
     branches: [main]
-    paths:
-      - 'postgres/Dockerfile.postgres'
-      - 'postgres/Dockerfile.backup'
-      - '.github/workflows/db-image.yml'
   workflow_dispatch:
     inputs:
       pgvector_version:
