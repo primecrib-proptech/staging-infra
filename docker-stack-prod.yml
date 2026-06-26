@@ -196,17 +196,22 @@ services:
   rabbitmq:
     image: rabbitmq:4.2.0-management
     hostname: rabbitmq
-    command: >
-      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
-             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
-             export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
+    command:
+      - bash
+      - -c
       - |
-             if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
-               cat /run/secrets/rabbit_erlang_cookie > /var/lib/rabbitmq/.erlang.cookie
-               chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
-               chmod 400 /var/lib/rabbitmq/.erlang.cookie
-             fi
-             exec rabbitmq-server"
+        export RABBITMQ_DEFAULT_USER=admin
+        export RABBITMQ_DEFAULT_PASS=$(cat /run/secrets/rabbit_password)
+        export RABBITMQ_ERLANG_COOKIE=$(cat /run/secrets/rabbit_erlang_cookie)
+  
+        if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
+          echo "Initializing Erlang cookie"
+          cat /run/secrets/rabbit_erlang_cookie > /var/lib/rabbitmq/.erlang.cookie
+          chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+          chmod 400 /var/lib/rabbitmq/.erlang.cookie
+        fi
+
+        exec rabbitmq-server
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
       RABBITMQ_NODENAME: rabbit@rabbitmq
