@@ -244,8 +244,8 @@ services:
         constraints: [node.role == manager]
       resources:
         limits:
-          cpus: "1.0"
-          memory: 2G
+          cpus: "2.0"
+          memory: 3G
         reservations:
           cpus: "0.25"
           memory: 512M
