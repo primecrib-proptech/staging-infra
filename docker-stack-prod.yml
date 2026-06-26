@@ -201,7 +201,6 @@ services:
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
              exec rabbitmq-server"
-    # Keep AMQP internal; expose externally only through Traefik TCP router.
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
       RABBITMQ_NODENAME: rabbit@rabbitmq
@@ -217,11 +216,11 @@ services:
       - backend
       - traefik-public
     healthcheck:
-      test: ["CMD-SHELL", "export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) && rabbitmq-diagnostics ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "rabbitmq-diagnostics check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 150s
     stop_grace_period: 90s
     ulimits:
       nofile:
@@ -234,21 +233,79 @@ services:
         order: stop-first
         failure_action: rollback
       restart_policy:
-        condition: any
-        delay: 5s
-        max_attempts: 0
-        window: 180s
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 300s
       placement:
         constraints: [node.role == manager]
       resources:
         limits:
-          cpus: "2.0"
-          memory: 4G
+          cpus: "1.0"
+          memory: 2G
         reservations:
-          cpus: "0.5"
+          cpus: "0.25"
           memory: 512M
     labels:
       - "traefik.enable=true"
+
+#
+#  rabbitmq:
+#    image: rabbitmq:4.2.0-management
+#    hostname: rabbitmq
+#    command: >
+#      sh -c "export RABBITMQ_DEFAULT_USER=admin &&
+#             export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
+#             export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
+#             exec rabbitmq-server"
+#    # Keep AMQP internal; expose externally only through Traefik TCP router.
+#    environment:
+#      RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
+#      RABBITMQ_NODENAME: rabbit@rabbitmq
+#      RABBITMQ_USE_LONGNAME: "false"
+#    secrets:
+#      - rabbit_password
+#      - rabbit_erlang_cookie
+#      - traefik_basicauth
+#    volumes:
+#      - rabbitmq_data:/var/lib/rabbitmq
+#      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+#    networks:
+#      - backend
+#      - traefik-public
+#    healthcheck:
+#      test: ["CMD-SHELL", "export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) && rabbitmq-diagnostics ping"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#      start_period: 60s
+#    stop_grace_period: 90s
+#    ulimits:
+#      nofile:
+#        soft: 65536
+#        hard: 65536
+#    deploy:
+#      replicas: 1
+#      update_config:
+#        parallelism: 1
+#        order: stop-first
+#        failure_action: rollback
+#      restart_policy:
+#        condition: any
+#        delay: 5s
+#        max_attempts: 0
+#        window: 180s
+#      placement:
+#        constraints: [node.role == manager]
+#      resources:
+#        limits:
+#          cpus: "2.0"
+#          memory: 4G
+#        reservations:
+#          cpus: "0.5"
+#          memory: 512M
+#    labels:
+#      - "traefik.enable=true"
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
