@@ -75,7 +75,7 @@ services:
         - "traefik.enable=true"
 
   portainer:
-    image: portainer/portainer-ce:2.39.3-alpine
+    image: portainer/portainer-ce:2.39.4-alpine
     command: -H unix:///var/run/docker.sock
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
