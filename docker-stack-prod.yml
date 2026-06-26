@@ -205,6 +205,9 @@ services:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
       RABBITMQ_NODENAME: rabbit@rabbitmq
       RABBITMQ_USE_LONGNAME: "false"
+      # Tell Erlang VM to use 1 scheduler thread (matches 1.0 CPU limit)
+      # Prevents it from probing/spawning schedulers for unavailable CPUs
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 1:1 +stbt db"
     secrets:
       - rabbit_password
       - rabbit_erlang_cookie
