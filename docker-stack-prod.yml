@@ -200,6 +200,12 @@ services:
       sh -c "export RABBITMQ_DEFAULT_USER=admin &&
              export RABBITMQ_DEFAULT_PASS=$$(cat /run/secrets/rabbit_password) &&
              export RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) &&
+      - |
+             if [ ! -f /var/lib/rabbitmq/.erlang.cookie ]; then
+               cat /run/secrets/rabbit_erlang_cookie > /var/lib/rabbitmq/.erlang.cookie
+               chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+               chmod 400 /var/lib/rabbitmq/.erlang.cookie
+             fi
              exec rabbitmq-server"
     environment:
       RABBITMQ_CONFIG_FILE: /etc/rabbitmq/rabbitmq
@@ -219,7 +225,7 @@ services:
       - backend
       - traefik-public
     healthcheck:
-      test: [ "CMD-SHELL", "rabbitmq-diagnostics -q ping "]
+      test: [ "CMD-SHELL", "RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) rabbitmq-diagnostics check_port_connectivity" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -244,8 +250,8 @@ services:
         constraints: [node.role == manager]
       resources:
         limits:
-          cpus: "1.0"
-          memory: 2G
+          cpus: "2.0"
+          memory: 4G
         reservations:
           cpus: "0.25"
           memory: 512M
