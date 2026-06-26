@@ -223,7 +223,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 150s
+      start_period: 250s
     stop_grace_period: 90s
     ulimits:
       nofile:
