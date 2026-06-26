@@ -223,7 +223,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 250s
+      start_period: 400s
     stop_grace_period: 90s
     ulimits:
       nofile:
@@ -239,7 +239,7 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 5
-        window: 300s
+        window: 450s
       placement:
         constraints: [node.role == manager]
       resources:
