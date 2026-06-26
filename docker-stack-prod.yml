@@ -230,11 +230,11 @@ services:
       - backend
       - traefik-public
     healthcheck:
-      test: [ "CMD-SHELL", "RABBITMQ_ERLANG_COOKIE=$$(cat /run/secrets/rabbit_erlang_cookie) rabbitmq-diagnostics check_port_connectivity" ]
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 400s
+      start_period: 120s
     stop_grace_period: 90s
     ulimits:
       nofile:
