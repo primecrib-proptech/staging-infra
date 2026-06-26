@@ -202,10 +202,13 @@ END $$;
 
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-        RAISE NOTICE 'pgvector version: %',
-            (SELECT extversion FROM pg_extension WHERE extname = 'vector');
+    IF EXISTS (
+        SELECT 1
+        FROM pg_available_extensions
+        WHERE name = 'vector'
+    ) THEN
+        CREATE EXTENSION IF NOT EXISTS vector;
     ELSE
-        RAISE NOTICE 'pgvector not installed';
+        RAISE NOTICE 'pgvector extension is not installed on this PostgreSQL server';
     END IF;
 END $$;
