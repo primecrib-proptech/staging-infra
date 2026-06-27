@@ -212,3 +212,16 @@ BEGIN
         RAISE NOTICE 'pgvector extension is not installed on this PostgreSQL server';
     END IF;
 END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_available_extensions
+        WHERE name = 'pgcrypto'
+    ) THEN
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    ELSE
+        RAISE NOTICE 'pgcrypto extension is not installed on this PostgreSQL server';
+    END IF;
+END $$;
