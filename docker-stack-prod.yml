@@ -245,6 +245,7 @@ services:
       update_config:
         parallelism: 1
         order: stop-first
+        monitor: 30s
         failure_action: rollback
       restart_policy:
         condition: any
