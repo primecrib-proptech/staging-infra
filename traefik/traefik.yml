@@ -12,11 +12,17 @@ api:
 entryPoints:
   web:
     address: ":80"
+    proxyProtocol:
+      trustedIPs:
+        - "10.0.3.0/24"   # docker network inspect traefik-public --format '{{json .IPAM.Config}}'
     forwardedHeaders:
       insecure: true
 
   websecure:
     address: ":443"
+    proxyProtocol:
+      trustedIPs:
+        - "10.0.3.0/24"
     forwardedHeaders:
       insecure: true
       trustedIPs:
