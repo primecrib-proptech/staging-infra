@@ -17,6 +17,8 @@ entryPoints:
         - "10.0.3.0/24"   # docker network inspect traefik-public --format '{{json .IPAM.Config}}'
     forwardedHeaders:
       insecure: true
+      trustedIPs:
+        - "0.0.0.0/0"
 
   websecure:
     address: ":443"
