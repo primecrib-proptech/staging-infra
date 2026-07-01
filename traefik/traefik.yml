@@ -62,7 +62,7 @@ providers:
 
 # Logging
 log:
-  level: INFO  # Change to DEBUG only for troubleshooting
+  level: DEBUG  # Change to DEBUG only for troubleshooting
   format: json
 
 accessLog:
