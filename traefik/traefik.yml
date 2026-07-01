@@ -14,11 +14,10 @@ entryPoints:
     address: ":80"
     proxyProtocol:
       trustedIPs:
-        - "10.0.3.0/24"   # docker network inspect traefik-public --format '{{json .IPAM.Config}}'
+        - "10.0.3.0/24"        # HAProxy's overlay subnet only
     forwardedHeaders:
-      insecure: true
       trustedIPs:
-        - "0.0.0.0/0"
+        - "10.0.3.0/24"        # was 0.0.0.0/0 — spoofing risk, locked down
 
   websecure:
     address: ":443"
@@ -26,9 +25,8 @@ entryPoints:
       trustedIPs:
         - "10.0.3.0/24"
     forwardedHeaders:
-      insecure: true
       trustedIPs:
-        - "0.0.0.0/0"
+        - "10.0.3.0/24"        # was 0.0.0.0/0 — spoofing risk, locked down
     http:
       tls:
         options: default  # Use TLS options from dynamic config
@@ -66,7 +64,6 @@ providers:
 log:
   level: INFO  # Change to DEBUG only for troubleshooting
   format: json
-  filePath: "" # log to stdout; rely on Docker logging
 
 accessLog:
   format: json

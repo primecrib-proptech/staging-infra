@@ -20,7 +20,7 @@ services:
     environment:
       - TZ=UTC
     healthcheck:
-      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg"]
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg && kill -0 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -49,8 +49,13 @@ services:
     secrets:
       - traefik_basicauth
     networks:
-      - traefik-public
-      - shared-network
+      traefik-public:
+        aliases:
+          - route.primecrib.app           # ← hairpin fix: SSR containers resolve
+          - staging.route.primecrib.app   #   these domains to Traefik directly
+          - api.primecrib.app             #   via Docker DNS, no hardcoded IPs
+          - staging.api.primecrib.app     #   add every domain your apps call
+      shared-network:
     environment:
       - TZ=UTC
     healthcheck:
@@ -785,6 +790,7 @@ configs:
     file: ./redis/redis.conf
   haproxy_cfg:
     file: ./haproxy/haproxy.cfg
+    name: haproxy_cfg_v3              # bump this suffix every time haproxy.cfg changes
   imgproxy_watermark:
     external: true
 
